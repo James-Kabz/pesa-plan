@@ -79,3 +79,8 @@ export interface RecurringInput {
   accountId: string; categoryId: string; type: TransactionType; amountMinor: number;
   note?: string; frequency: 'weekly' | 'monthly'; nextDueAt: string;
 }
+
+export interface MonthlyBudget {
+  id: string; categoryId: string; categoryName: string; categoryIcon: string;
+  limitMinor: number; spentMinor: number; month: string;
+}

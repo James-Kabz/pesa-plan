@@ -8,6 +8,7 @@ import type {
   NewTransfer,
   RecurringInput,
   RecurringTransaction,
+  MonthlyBudget,
   TransactionKind,
   TransactionType,
 } from '@/domain/types';
@@ -296,4 +297,24 @@ export async function postRecurring(db: SQLiteDatabase, schedule: RecurringTrans
       next.toISOString(), schedule.id,
     );
   });
+}
+
+export async function listBudgets(db: SQLiteDatabase, month: string): Promise<MonthlyBudget[]> {
+  return db.getAllAsync<MonthlyBudget>(`
+    SELECT b.id, b.category_id AS categoryId, c.name AS categoryName,
+      c.icon AS categoryIcon, b.limit_minor AS limitMinor, b.month,
+      COALESCE(SUM(t.amount_minor), 0) AS spentMinor
+    FROM monthly_budgets b JOIN categories c ON c.id = b.category_id
+    LEFT JOIN transactions t ON t.category_id = b.category_id AND t.type = 'expense'
+      AND substr(t.occurred_at, 1, 7) = b.month
+    WHERE b.month = ? GROUP BY b.id ORDER BY c.name
+  `, month);
+}
+
+export async function saveBudget(db: SQLiteDatabase, categoryId: string, month: string, limitMinor: number) {
+  await db.runAsync(
+    `INSERT INTO monthly_budgets (id, category_id, month, limit_minor) VALUES (?, ?, ?, ?)
+     ON CONFLICT(category_id, month) DO UPDATE SET limit_minor = excluded.limit_minor`,
+    `${categoryId}-${month}`, categoryId, month, limitMinor,
+  );
 }
