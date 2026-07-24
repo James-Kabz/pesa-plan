@@ -200,6 +200,16 @@ export async function createTransaction(
 
 export async function saveAccount(db: SQLiteDatabase, account: AccountInput): Promise<void> {
   if (account.id) {
+    const linkedGoals = await db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) AS count FROM savings_goals WHERE account_id = ?',
+      account.id,
+    );
+    if (
+      (linkedGoals?.count ?? 0) > 0 &&
+      (account.type !== 'savings' || account.currency !== 'KES')
+    ) {
+      throw new Error('An account linked to savings goals must remain a KES savings account');
+    }
     await db.runAsync(
       `UPDATE accounts
        SET name = ?, type = ?, currency = ?, opening_balance_minor = ?, color = ?
@@ -378,9 +388,32 @@ export async function contributeToFund(
 
 export async function listSavingsGoals(db: SQLiteDatabase): Promise<SavingsGoal[]> {
   return db.getAllAsync<SavingsGoal>(`
-    SELECT id, name, target_minor AS targetMinor, saved_minor AS savedMinor,
-      goal_type AS goalType, target_date AS targetDate, color
-    FROM savings_goals ORDER BY created_at
+    SELECT
+      g.id,
+      g.name,
+      g.target_minor AS targetMinor,
+      g.saved_minor AS savedMinor,
+      g.goal_type AS goalType,
+      g.account_id AS accountId,
+      a.name AS accountName,
+      CASE WHEN a.id IS NULL THEN NULL ELSE
+        a.opening_balance_minor
+        + COALESCE((
+          SELECT SUM(CASE WHEN t.type = 'income' THEN t.amount_minor ELSE -t.amount_minor END)
+          FROM transactions t WHERE t.account_id = a.id
+        ), 0)
+        + COALESCE((
+          SELECT SUM(tr.amount_minor) FROM transfers tr WHERE tr.to_account_id = a.id
+        ), 0)
+        - COALESCE((
+          SELECT SUM(tr.amount_minor) FROM transfers tr WHERE tr.from_account_id = a.id
+        ), 0)
+      END AS accountBalanceMinor,
+      g.target_date AS targetDate,
+      g.color
+    FROM savings_goals g
+    LEFT JOIN accounts a ON a.id = g.account_id
+    ORDER BY g.created_at
   `);
 }
 
@@ -388,18 +421,76 @@ export async function createSavingsGoal(
   db: SQLiteDatabase,
   input: SavingsGoalInput,
 ): Promise<void> {
-  await db.runAsync(
-    `INSERT INTO savings_goals
-      (id, name, target_minor, saved_minor, goal_type, target_date, color, created_at)
-     VALUES (?, ?, ?, 0, ?, ?, ?, ?)`,
-    `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-    input.name.trim(),
-    input.targetMinor,
-    input.goalType,
-    input.targetDate || null,
-    input.color,
-    new Date().toISOString(),
-  );
+  await withDatabaseTransaction(db, async (transaction) => {
+    const account = await transaction.getFirstAsync<{ id: string }>(
+      `SELECT id FROM accounts
+       WHERE id = ? AND type = 'savings' AND currency = 'KES'`,
+      input.accountId,
+    );
+    if (!account) {
+      throw new Error('Choose a KES savings account for this goal');
+    }
+    await transaction.runAsync(
+      `INSERT INTO savings_goals
+        (id, name, target_minor, saved_minor, goal_type, account_id, target_date, color, created_at)
+       VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)`,
+      `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+      input.name.trim(),
+      input.targetMinor,
+      input.goalType,
+      input.accountId,
+      input.targetDate || null,
+      input.color,
+      new Date().toISOString(),
+    );
+  });
+}
+
+export async function assignSavingsGoalAccount(
+  db: SQLiteDatabase,
+  id: string,
+  accountId: string,
+): Promise<void> {
+  await withDatabaseTransaction(db, async (transaction) => {
+    const goal = await transaction.getFirstAsync<{ saved_minor: number }>(
+      'SELECT saved_minor FROM savings_goals WHERE id = ?',
+      id,
+    );
+    const account = await transaction.getFirstAsync<{ balance_minor: number }>(
+      `SELECT
+        a.opening_balance_minor
+        + COALESCE((
+          SELECT SUM(CASE WHEN t.type = 'income' THEN t.amount_minor ELSE -t.amount_minor END)
+          FROM transactions t WHERE t.account_id = a.id
+        ), 0)
+        + COALESCE((
+          SELECT SUM(tr.amount_minor) FROM transfers tr WHERE tr.to_account_id = a.id
+        ), 0)
+        - COALESCE((
+          SELECT SUM(tr.amount_minor) FROM transfers tr WHERE tr.from_account_id = a.id
+        ), 0) AS balance_minor
+       FROM accounts a
+       WHERE a.id = ? AND a.type = 'savings' AND a.currency = 'KES'`,
+      accountId,
+    );
+    if (!goal || !account) throw new Error('Choose a valid KES savings account');
+
+    const allocation = await transaction.getFirstAsync<{ allocated_minor: number }>(
+      `SELECT COALESCE(SUM(saved_minor), 0) AS allocated_minor
+       FROM savings_goals WHERE account_id = ? AND id != ?`,
+      accountId,
+      id,
+    );
+    if (goal.saved_minor + (allocation?.allocated_minor ?? 0) > account.balance_minor) {
+      throw new Error('This savings account does not contain enough unallocated money');
+    }
+
+    await transaction.runAsync(
+      'UPDATE savings_goals SET account_id = ? WHERE id = ?',
+      accountId,
+      id,
+    );
+  });
 }
 
 export async function contributeToSavingsGoal(
@@ -407,11 +498,57 @@ export async function contributeToSavingsGoal(
   id: string,
   amountMinor: number,
 ): Promise<void> {
-  await db.runAsync(
-    'UPDATE savings_goals SET saved_minor = saved_minor + ? WHERE id = ?',
-    amountMinor,
-    id,
-  );
+  if (amountMinor <= 0) throw new Error('Contribution must be greater than zero');
+  await withDatabaseTransaction(db, async (transaction) => {
+    const goal = await transaction.getFirstAsync<{
+      account_id: string | null;
+      target_minor: number;
+      saved_minor: number;
+    }>(
+      `SELECT account_id, target_minor, saved_minor
+       FROM savings_goals WHERE id = ?`,
+      id,
+    );
+    if (!goal) throw new Error('Savings goal not found');
+    if (!goal.account_id) throw new Error('Link this goal to a savings account first');
+
+    const account = await transaction.getFirstAsync<{ balance_minor: number }>(
+      `SELECT
+        a.opening_balance_minor
+        + COALESCE((
+          SELECT SUM(CASE WHEN t.type = 'income' THEN t.amount_minor ELSE -t.amount_minor END)
+          FROM transactions t WHERE t.account_id = a.id
+        ), 0)
+        + COALESCE((
+          SELECT SUM(tr.amount_minor) FROM transfers tr WHERE tr.to_account_id = a.id
+        ), 0)
+        - COALESCE((
+          SELECT SUM(tr.amount_minor) FROM transfers tr WHERE tr.from_account_id = a.id
+        ), 0) AS balance_minor
+       FROM accounts a WHERE a.id = ? AND a.type = 'savings'`,
+      goal.account_id,
+    );
+    if (!account) throw new Error('The linked savings account is unavailable');
+
+    const allocation = await transaction.getFirstAsync<{ allocated_minor: number }>(
+      `SELECT COALESCE(SUM(saved_minor), 0) AS allocated_minor
+       FROM savings_goals WHERE account_id = ?`,
+      goal.account_id,
+    );
+    const unallocatedMinor = account.balance_minor - (allocation?.allocated_minor ?? 0);
+    if (amountMinor > unallocatedMinor) {
+      throw new Error('This savings account does not contain enough unallocated money');
+    }
+    if (goal.saved_minor + amountMinor > goal.target_minor) {
+      throw new Error('This contribution is greater than the amount remaining for the goal');
+    }
+
+    await transaction.runAsync(
+      'UPDATE savings_goals SET saved_minor = saved_minor + ? WHERE id = ?',
+      amountMinor,
+      id,
+    );
+  });
 }
 
 export async function listDebts(db: SQLiteDatabase): Promise<Debt[]> {

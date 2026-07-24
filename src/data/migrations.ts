@@ -1,20 +1,37 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { withDatabaseTransaction } from './databaseTransaction';
 
-const DATABASE_VERSION = 7;
+const DATABASE_VERSION = 9;
 
 const categories = [
   ['salary', 'Salary', 'income', 'briefcase-outline', '#2B7A5D'],
   ['business', 'Business', 'income', 'storefront-outline', '#3177A8'],
+  ['freelance', 'Freelance', 'income', 'laptop-outline', '#327D73'],
+  ['rental-income', 'Rental income', 'income', 'home-outline', '#8A5B45'],
+  ['interest-income', 'Interest', 'income', 'trending-up-outline', '#5E7A38'],
+  ['gifts-income', 'Gifts received', 'income', 'gift-outline', '#9C5791'],
+  ['refund', 'Refunds', 'income', 'return-down-back-outline', '#3F75A2'],
   ['other-income', 'Other income', 'income', 'add-circle-outline', '#6D5DA8'],
   ['food', 'Food & dining', 'expense', 'restaurant-outline', '#D47B3A'],
+  ['groceries', 'Groceries', 'expense', 'basket-outline', '#C56F36'],
+  ['dining', 'Dining out', 'expense', 'restaurant-outline', '#B96334'],
   ['transport', 'Transport', 'expense', 'car-outline', '#3F75A2'],
+  ['fuel', 'Fuel', 'expense', 'speedometer-outline', '#44718D'],
   ['housing', 'Housing', 'expense', 'home-outline', '#8A5B45'],
   ['utilities', 'Utilities', 'expense', 'flash-outline', '#B88B22'],
+  ['airtime-data', 'Airtime & data', 'expense', 'phone-portrait-outline', '#477D9A'],
   ['health', 'Health', 'expense', 'medkit-outline', '#C45245'],
+  ['insurance', 'Insurance', 'expense', 'shield-checkmark-outline', '#39766E'],
+  ['personal-care', 'Personal care', 'expense', 'body-outline', '#A05E86'],
   ['shopping', 'Shopping', 'expense', 'bag-handle-outline', '#9C5791'],
   ['entertainment', 'Entertainment', 'expense', 'film-outline', '#6558A5'],
+  ['subscriptions', 'Subscriptions', 'expense', 'repeat-outline', '#725F9D'],
   ['education', 'Education', 'expense', 'school-outline', '#2F8178'],
+  ['childcare', 'Childcare', 'expense', 'people-outline', '#A36D54'],
+  ['family-support', 'Family support', 'expense', 'heart-outline', '#B05C6D'],
+  ['giving', 'Giving', 'expense', 'gift-outline', '#9C6B3D'],
+  ['taxes', 'Taxes & fees', 'expense', 'document-text-outline', '#6C756F'],
+  ['travel', 'Travel', 'expense', 'airplane-outline', '#5371A5'],
   ['other-expense', 'Other', 'expense', 'ellipsis-horizontal', '#6C756F'],
 ] as const;
 
@@ -200,6 +217,53 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
       );
     `);
     version = 7;
+  }
+
+  if (version === 7) {
+    await db.execAsync(`
+      PRAGMA foreign_keys = OFF;
+
+      CREATE TABLE accounts_v8 (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK (
+          type IN ('cash', 'bank', 'savings', 'mobile_money', 'credit')
+        ),
+        currency TEXT NOT NULL DEFAULT 'KES',
+        opening_balance_minor INTEGER NOT NULL DEFAULT 0,
+        color TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      INSERT INTO accounts_v8
+        (id, name, type, currency, opening_balance_minor, color, created_at)
+      SELECT id, name, type, currency, opening_balance_minor, color, created_at
+      FROM accounts;
+
+      DROP TABLE accounts;
+      ALTER TABLE accounts_v8 RENAME TO accounts;
+      PRAGMA foreign_keys = ON;
+    `);
+
+    await withDatabaseTransaction(db, async (transaction) => {
+      for (const category of categories) {
+        await transaction.runAsync(
+          `INSERT OR IGNORE INTO categories (id, name, type, icon, color)
+           VALUES (?, ?, ?, ?, ?)`,
+          ...category,
+        );
+      }
+    });
+    version = 8;
+  }
+
+  if (version === 8) {
+    await db.execAsync(`
+      ALTER TABLE savings_goals
+        ADD COLUMN account_id TEXT REFERENCES accounts(id) ON DELETE RESTRICT;
+      CREATE INDEX IF NOT EXISTS savings_goals_account_idx ON savings_goals(account_id);
+    `);
+    version = 9;
   }
 
   await db.execAsync(`PRAGMA user_version = ${Math.max(version, DATABASE_VERSION)}`);

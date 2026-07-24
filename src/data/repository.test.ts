@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createTestDatabase } from '../test/sqlite';
 import { migrateDatabase } from './migrations';
 import {
+  assignSavingsGoalAccount,
   contributeToFund,
   contributeToSavingsGoal,
   createDebt,
@@ -178,15 +179,35 @@ describe('finance repository integration', () => {
     await contributeToFund(db, fund.id, 10_000);
     expect((await listSinkingFunds(db))[0].savedMinor).toBe(10_000);
 
+    await saveAccount(db, {
+      name: 'Emergency savings',
+      type: 'savings',
+      currency: 'KES',
+      openingBalanceMinor: 50_000,
+      color: '#175C45',
+    });
+    const savingsAccount = (await listAccounts(db)).find(
+      (account) => account.type === 'savings',
+    );
+    expect(savingsAccount).toBeDefined();
     await createSavingsGoal(db, {
       name: 'Emergency fund',
       targetMinor: 300_000,
       goalType: 'emergency',
+      accountId: savingsAccount!.id,
       color: '#175C45',
     });
     const goal = (await listSavingsGoals(db))[0];
     await contributeToSavingsGoal(db, goal.id, 25_000);
-    expect((await listSavingsGoals(db))[0].savedMinor).toBe(25_000);
+    expect((await listSavingsGoals(db))[0]).toMatchObject({
+      savedMinor: 25_000,
+      accountId: savingsAccount!.id,
+      accountName: 'Emergency savings',
+      accountBalanceMinor: 50_000,
+    });
+    await expect(contributeToSavingsGoal(db, goal.id, 30_000)).rejects.toThrow(
+      'unallocated money',
+    );
 
     await createDebt(db, {
       name: 'Credit card',
@@ -201,5 +222,48 @@ describe('finance repository integration', () => {
       amountMinor: 30_000,
       note: 'Final payment',
     });
+  });
+
+  it('links migrated goals to real savings and protects allocated balances', async () => {
+    await saveAccount(db, {
+      name: 'Goal savings',
+      type: 'savings',
+      currency: 'KES',
+      openingBalanceMinor: 40_000,
+      color: '#3177A8',
+    });
+    const account = (await listAccounts(db)).find((item) => item.type === 'savings')!;
+    await db.runAsync(
+      `INSERT INTO savings_goals
+        (id, name, target_minor, saved_minor, goal_type, target_date, color, created_at)
+       VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`,
+      'legacy-goal',
+      'Migrated goal',
+      50_000,
+      20_000,
+      'general',
+      '#3177A8',
+      '2026-07-24T12:00:00.000Z',
+    );
+
+    await assignSavingsGoalAccount(db, 'legacy-goal', account.id);
+    await contributeToSavingsGoal(db, 'legacy-goal', 20_000);
+    expect((await listSavingsGoals(db))[0]).toMatchObject({
+      savedMinor: 40_000,
+      accountId: account.id,
+    });
+    await expect(contributeToSavingsGoal(db, 'legacy-goal', 1)).rejects.toThrow(
+      'unallocated money',
+    );
+    await expect(
+      saveAccount(db, {
+        id: account.id,
+        name: account.name,
+        type: 'bank',
+        currency: 'KES',
+        openingBalanceMinor: account.openingBalanceMinor,
+        color: account.color,
+      }),
+    ).rejects.toThrow('must remain a KES savings account');
   });
 });

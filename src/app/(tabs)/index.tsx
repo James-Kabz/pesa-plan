@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Screen } from '@/components/Screen';
@@ -11,6 +12,8 @@ import { colors, radius, spacing } from '@/theme';
 
 export default function DashboardScreen() {
   const { accounts, monthlySummary, transactions } = useFinance();
+  const [amountsVisible, setAmountsVisible] = useState(true);
+  const privateValue = (value: string) => (amountsVisible ? value : '••••••');
   const totalBalance = accounts
     .filter((account) => account.currency === 'KES')
     .reduce((sum, account) => sum + account.currentBalanceMinor, 0);
@@ -38,23 +41,49 @@ export default function DashboardScreen() {
       >
         <View style={styles.balanceTop}>
           <Text style={styles.balanceLabel}>KES account balance</Text>
-          <Text style={styles.month}>{month}</Text>
+          <View style={styles.balanceControls}>
+            <Text style={styles.month}>{month}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={amountsVisible ? 'Hide all amounts' : 'Show all amounts'}
+              hitSlop={10}
+              style={styles.visibilityButton}
+              onPress={() => setAmountsVisible((visible) => !visible)}
+            >
+              <Ionicons
+                name={amountsVisible ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color="#FFFFFF"
+              />
+            </Pressable>
+          </View>
         </View>
-        <Text style={styles.balance}>{formatMoney(totalBalance)}</Text>
+        <Text
+          accessibilityLabel={amountsVisible ? formatMoney(totalBalance) : 'Balance hidden'}
+          style={styles.balance}
+        >
+          {privateValue(formatMoney(totalBalance))}
+        </Text>
         <View style={styles.summaryRow}>
           <View>
             <Text style={styles.cardMeta}>Income</Text>
-            <Text style={styles.cardValue}>+{formatMoney(monthlySummary.incomeMinor)}</Text>
+            <Text style={styles.cardValue}>
+              {privateValue(`+${formatMoney(monthlySummary.incomeMinor)}`)}
+            </Text>
           </View>
           <View style={styles.divider} />
           <View>
             <Text style={styles.cardMeta}>Spent</Text>
-            <Text style={styles.cardValue}>−{formatMoney(monthlySummary.expenseMinor)}</Text>
+            <Text style={styles.cardValue}>
+              {privateValue(`−${formatMoney(monthlySummary.expenseMinor)}`)}
+            </Text>
           </View>
           <View style={styles.divider} />
           <View>
             <Text style={styles.cardMeta}>Saved</Text>
-            <Text style={styles.cardValue}>{monthlySummary.savingsRate.toFixed(0)}%</Text>
+            <Text style={styles.cardValue}>
+              {privateValue(`${monthlySummary.savingsRate.toFixed(0)}%`)}
+            </Text>
           </View>
         </View>
       </LinearGradient>
@@ -84,7 +113,7 @@ export default function DashboardScreen() {
             <Text style={styles.accountType}>{account.type.replace('_', ' ')}</Text>
             <Text style={styles.accountName}>{account.name}</Text>
             <Text style={styles.accountBalance}>
-              {formatMoney(account.currentBalanceMinor, account.currency)}
+              {privateValue(formatMoney(account.currentBalanceMinor, account.currency))}
             </Text>
           </View>
         ))}
@@ -97,7 +126,7 @@ export default function DashboardScreen() {
         {transactions.length ? (
           transactions.slice(0, 5).map((transaction, index) => (
             <View key={transaction.id}>
-              <TransactionRow transaction={transaction} />
+              <TransactionRow transaction={transaction} amountsVisible={amountsVisible} />
               {index < Math.min(transactions.length, 5) - 1 ? (
                 <View style={styles.rowDivider} />
               ) : null}
@@ -177,7 +206,10 @@ const styles = StyleSheet.create({
   balanceTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
+  balanceControls: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  visibilityButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.12)' },
   balanceLabel: {
     color: '#C5D6CD',
     fontSize: 13,

@@ -42,6 +42,7 @@ import {
   contributeToFund,
   listSavingsGoals,
   createSavingsGoal,
+  assignSavingsGoalAccount,
   contributeToSavingsGoal,
   listDebts,
   createDebt,
@@ -76,6 +77,7 @@ interface FinanceContextValue {
   contributeToFund: (id: string, amountMinor: number) => Promise<void>;
   savingsGoals: SavingsGoal[];
   addSavingsGoal: (input: SavingsGoalInput) => Promise<void>;
+  linkSavingsGoalAccount: (id: string, accountId: string) => Promise<void>;
   contributeToSavingsGoal: (id: string, amountMinor: number) => Promise<void>;
   debts: Debt[];
   addDebt: (input: DebtInput) => Promise<void>;
@@ -216,6 +218,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     await refresh();
   }, [db, refresh]);
 
+  const linkSavingsGoalAccount = useCallback(async (id: string, accountId: string) => {
+    await assignSavingsGoalAccount(db, id, accountId);
+    await refresh();
+  }, [db, refresh]);
+
   const addSavingsContribution = useCallback(async (id: string, amountMinor: number) => {
     await contributeToSavingsGoal(db, id, amountMinor);
     await refresh();
@@ -265,6 +272,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       contributeToFund: addFundContribution,
       savingsGoals,
       addSavingsGoal,
+      linkSavingsGoalAccount,
       contributeToSavingsGoal: addSavingsContribution,
       debts,
       addDebt,
@@ -298,6 +306,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       addFundContribution,
       savingsGoals,
       addSavingsGoal,
+      linkSavingsGoalAccount,
       addSavingsContribution,
       debts,
       addDebt,

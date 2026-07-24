@@ -22,6 +22,7 @@ import { colors, radius, spacing } from '@/theme';
 const accountTypes: { value: AccountType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { value: 'cash', label: 'Cash', icon: 'cash-outline' },
   { value: 'bank', label: 'Bank', icon: 'business-outline' },
+  { value: 'savings', label: 'Savings', icon: 'wallet-outline' },
   { value: 'mobile_money', label: 'Mobile money', icon: 'phone-portrait-outline' },
   { value: 'credit', label: 'Credit', icon: 'card-outline' },
 ];
@@ -71,9 +72,12 @@ export default function AccountEditorScreen() {
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
-    } catch {
+    } catch (error) {
       setSaving(false);
-      Alert.alert('Could not save', 'The account was not saved. Please try again.');
+      Alert.alert(
+        'Could not save',
+        error instanceof Error ? error.message : 'The account was not saved. Please try again.',
+      );
     }
   }
 

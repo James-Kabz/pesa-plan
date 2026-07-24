@@ -26,9 +26,13 @@ describe('database migrations', () => {
         'financial_snapshots',
       ]),
     );
-    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(7);
+    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(9);
     expect(raw.exec('SELECT COUNT(*) FROM accounts')[0].values[0][0]).toBe(1);
-    expect(raw.exec('SELECT COUNT(*) FROM categories')[0].values[0][0]).toBe(12);
+    expect(raw.exec('SELECT COUNT(*) FROM categories')[0].values[0][0]).toBe(29);
+    expect(
+      raw.exec(`SELECT COUNT(*) FROM pragma_table_info('savings_goals') WHERE name = 'account_id'`)[0]
+        .values[0][0],
+    ).toBe(1);
     raw.close();
   });
 
@@ -51,10 +55,10 @@ describe('database migrations', () => {
 
     await migrateDatabase(expo);
 
-    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(7);
+    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(9);
     expect(raw.exec(`SELECT name FROM accounts WHERE id = 'starter-cash'`)[0].values)
       .toEqual([['Recovered wallet']]);
-    expect(raw.exec('SELECT COUNT(*) FROM categories')[0].values[0][0]).toBe(12);
+    expect(raw.exec('SELECT COUNT(*) FROM categories')[0].values[0][0]).toBe(29);
     raw.close();
   });
 
@@ -78,7 +82,7 @@ describe('database migrations', () => {
     raw.close();
   });
 
-  it('upgrades a populated version-1 database through version 7 without data loss', async () => {
+  it('upgrades a populated version-1 database through version 9 without data loss', async () => {
     const { raw, expo } = await createTestDatabase();
     await expo.execAsync(`
       PRAGMA foreign_keys = ON;
@@ -122,13 +126,20 @@ describe('database migrations', () => {
 
     await migrateDatabase(expo);
 
-    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(7);
+    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(9);
     expect(raw.exec(`SELECT note FROM transactions WHERE id = 'legacy-transaction'`)[0].values)
       .toEqual([['Preserve me']]);
     expect(
       raw.exec(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'financial_snapshots'`)[0]
         .values[0][0],
     ).toBe(1);
+    expect(raw.exec('PRAGMA foreign_key_check')).toEqual([]);
+    raw.run(
+      `INSERT INTO accounts VALUES
+       ('legacy-savings', 'Legacy savings', 'savings', 'KES', 50000, '#3177A8', '2026-01-03')`,
+    );
+    expect(raw.exec(`SELECT type FROM accounts WHERE id = 'legacy-savings'`)[0].values)
+      .toEqual([['savings']]);
     raw.close();
   });
 });

@@ -1,4 +1,4 @@
-export type AccountType = 'cash' | 'bank' | 'mobile_money' | 'credit';
+export type AccountType = 'cash' | 'bank' | 'savings' | 'mobile_money' | 'credit';
 export type TransactionType = 'income' | 'expense';
 export type TransactionKind = TransactionType | 'transfer';
 
@@ -109,6 +109,9 @@ export interface SavingsGoal {
   targetMinor: number;
   savedMinor: number;
   goalType: 'general' | 'emergency';
+  accountId: string | null;
+  accountName: string | null;
+  accountBalanceMinor: number | null;
   targetDate: string | null;
   color: string;
 }
@@ -117,6 +120,7 @@ export interface SavingsGoalInput {
   name: string;
   targetMinor: number;
   goalType: 'general' | 'emergency';
+  accountId: string;
   targetDate?: string;
   color: string;
 }

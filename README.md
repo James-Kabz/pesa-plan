@@ -5,8 +5,8 @@ cash flow, budgets, savings, debt, and net worth.
 
 ## Current milestone
 
-Stages 1–5 are complete and Stage 6 release validation is in progress. The app
-currently includes:
+Version 1.0 is released as a signed Android artifact. Version 1.1 is the current
+quality release and includes:
 
 - an Expo + React Native + TypeScript foundation;
 - a persistent SQLite database with migrations;
@@ -23,6 +23,10 @@ currently includes:
 - category and monthly trends, net-worth snapshots, and 30-day cash-flow forecasting;
 - secure PIN/biometric locking, background privacy, and inactivity locking;
 - CSV export and password-encrypted full backup/restore;
+- a Home privacy control that masks every visible financial amount;
+- automatic biometric prompting when the lock screen opens;
+- dedicated savings accounts with account-backed goal allocations;
+- 29 practical income and expense categories;
 - dashboard, transaction, plan, debt, and report navigation.
 
 See [ROADMAP.md](./ROADMAP.md) for the durable delivery plan and status.

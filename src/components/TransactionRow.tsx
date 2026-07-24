@@ -8,10 +8,12 @@ export function TransactionRow({
   transaction,
   onPress,
   onLongPress,
+  amountsVisible = true,
 }: {
   transaction: FinanceTransaction;
   onPress?: () => void;
   onLongPress?: () => void;
+  amountsVisible?: boolean;
 }) {
   const isIncome = transaction.type === 'income';
   const isTransfer = transaction.type === 'transfer';
@@ -23,7 +25,7 @@ export function TransactionRow({
   return (
     <Pressable
       accessibilityRole={onPress || onLongPress ? 'button' : undefined}
-      accessibilityLabel={`${transaction.note || transaction.categoryName}, ${transaction.accountName}, ${date}, ${isTransfer ? '' : isIncome ? 'income ' : 'expense '}${formatMoney(transaction.amountMinor, transaction.currency)}`}
+      accessibilityLabel={`${transaction.note || transaction.categoryName}, ${transaction.accountName}, ${date}, ${amountsVisible ? `${isTransfer ? '' : isIncome ? 'income ' : 'expense '}${formatMoney(transaction.amountMinor, transaction.currency)}` : 'amount hidden'}`}
       accessibilityHint={onLongPress ? 'Long press to delete' : undefined}
       style={({ pressed }) => [styles.row, pressed && onLongPress ? styles.pressed : undefined]}
       onLongPress={onLongPress}
@@ -59,8 +61,12 @@ export function TransactionRow({
           isTransfer ? styles.transfer : isIncome ? styles.income : styles.expense,
         ]}
       >
-        {isTransfer ? '' : isIncome ? '+' : '−'}
-        {formatMoney(transaction.amountMinor, transaction.currency)}
+        {amountsVisible ? (
+          <>
+            {isTransfer ? '' : isIncome ? '+' : '−'}
+            {formatMoney(transaction.amountMinor, transaction.currency)}
+          </>
+        ) : '••••••'}
       </Text>
     </Pressable>
   );

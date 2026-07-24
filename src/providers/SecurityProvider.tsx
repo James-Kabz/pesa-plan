@@ -170,6 +170,16 @@ export function SecurityProvider({ children }: { children: React.ReactNode }) {
 function UnlockScreen({ onUnlock }: { onUnlock: () => void }) {
   const [pin, setPinValue] = useState('');
   const [error, setError] = useState('');
+  const pinInput = useRef<TextInput>(null);
+  const automaticBiometricAttempted = useRef(false);
+
+  useEffect(() => {
+    if (automaticBiometricAttempted.current) return;
+    automaticBiometricAttempted.current = true;
+    void useBiometric(true).then((unlocked) => {
+      if (!unlocked) pinInput.current?.focus();
+    });
+  }, []);
 
   async function verify() {
     const saved = await SecureStore.getItemAsync(PIN_KEY);
@@ -183,20 +193,31 @@ function UnlockScreen({ onUnlock }: { onUnlock: () => void }) {
     }
   }
 
-  async function useBiometric() {
-    const [hardware, enrolled] = await Promise.all([
-      LocalAuthentication.hasHardwareAsync(),
-      LocalAuthentication.isEnrolledAsync(),
-    ]);
-    if (!hardware || !enrolled) {
-      setError('Biometric unlock is not available');
-      return;
+  async function useBiometric(automatic = false): Promise<boolean> {
+    try {
+      const [hardware, enrolled] = await Promise.all([
+        LocalAuthentication.hasHardwareAsync(),
+        LocalAuthentication.isEnrolledAsync(),
+      ]);
+      if (!hardware || !enrolled) {
+        if (!automatic) setError('Biometric unlock is not available');
+        return false;
+      }
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Unlock Pesa Plan',
+        cancelLabel: 'Use PIN',
+        biometricsSecurityLevel: 'strong',
+      });
+      if (result.success) {
+        setError('');
+        onUnlock();
+        return true;
+      }
+      return false;
+    } catch {
+      if (!automatic) setError('Biometric unlock could not start');
+      return false;
     }
-    const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Unlock Pesa Plan',
-      biometricsSecurityLevel: 'strong',
-    });
-    if (result.success) onUnlock();
   }
 
   return (
@@ -205,8 +226,8 @@ function UnlockScreen({ onUnlock }: { onUnlock: () => void }) {
       <Text style={styles.unlockTitle}>Pesa Plan is locked</Text>
       <Text style={styles.unlockText}>Enter your 4-digit PIN to continue.</Text>
       <TextInput
+        ref={pinInput}
         accessibilityLabel="4-digit PIN"
-        autoFocus
         secureTextEntry
         value={pin}
         onChangeText={(value) => setPinValue(value.replace(/\D/g, '').slice(0, 4))}
