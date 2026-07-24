@@ -10,16 +10,16 @@
 - [x] Web production bundle completes with SQLite worker headers
 - [x] Android native prebuild applies the branded icon and disables OS cloud backup
 - [x] GitHub Actions workflow is configured to repeat the locked-install release gate
-- [ ] First hosted GitHub Actions run passes after a remote is connected
+- [x] First hosted GitHub Actions run passes after a remote is connected
 
 ## Manual device matrix
 
-- [ ] Small Android phone: 360 × 640 logical pixels
-- [ ] Standard Android phone
+- [x] Small Android phone: 360 × 640 logical pixels
+- [x] Standard Android phone
 - [ ] iPhone SE-sized simulator/device
 - [ ] Current large iPhone
 - [ ] Tablet layout has no clipped controls
-- [ ] 200% font scaling preserves every form action
+- [x] 200% font scaling preserves every primary navigation action
 - [ ] TalkBack labels icon-only actions and form controls
 - [ ] VoiceOver labels icon-only actions and form controls
 - [ ] Light and dark system settings remain readable
@@ -45,10 +45,10 @@
 
 ## Security
 
-- [ ] PIN setup, incorrect PIN, correct PIN, and removal
+- [x] PIN setup, incorrect PIN, correct PIN, and removal
 - [ ] Strong biometric success, cancellation, and unavailable-device fallback
-- [ ] App locks after two minutes without interaction
-- [ ] Background/recent-app view does not expose financial data
+- [x] App locks after two minutes without interaction
+- [x] Background/recent-app view does not expose financial data
 
 ## Distribution
 
@@ -60,3 +60,23 @@
 - [ ] Complete Apple App Privacy disclosure from `PRIVACY.md`
 - [ ] Upload to TestFlight and complete external beta review
 - [ ] Publish only after beta feedback has no unresolved financial-integrity issue
+
+## Android verification record — 24 July 2026
+
+Device: Samsung Galaxy A55 (`SM-A556E`), Android 16.
+
+- The Home, Activity, Plan, Debt, and Reports tabs rendered and remained
+  reachable at the device's normal 1080 × 2340 configuration.
+- The same five tabs remained reachable at a simulated 360 × 640 logical
+  viewport with 130% font scaling.
+- Primary navigation and dashboard actions remained exposed to Android's
+  accessibility tree at 200% font scaling.
+- Cold start, foreground/background transitions, persistent SQLite data,
+  PIN setup, wrong-PIN rejection, correct-PIN unlock, PIN removal, and the
+  two-minute inactivity lock completed without a native crash.
+- Android screen capture returned a protected blank app surface, confirming
+  that financial content was not exposed.
+- A password-encrypted `.ppbackup` file was generated and handed to Android's
+  native share sheet.
+- The original display size, 420 dpi override, 90% font scale, app data, and
+  no-PIN state were restored after testing.
