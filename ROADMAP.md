@@ -64,7 +64,8 @@ Status: **In progress**
 - [x] Unit tests for money, backup, and export calculations
 - [x] Executable database migration and integrity tests
 - [x] Reproducible clean-install CI release gate
-- [ ] Accessibility and device-size testing
+- [x] Browser responsive and accessibility-semantics smoke testing
+- [ ] Physical-device accessibility, font-scaling, and device-size testing
 - [ ] Android internal testing
 - [ ] iOS TestFlight
 - [x] Store privacy disclosure draft and EAS release configuration

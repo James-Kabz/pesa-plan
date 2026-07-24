@@ -21,7 +21,7 @@ import { colors, radius, spacing } from '@/theme';
 export default function SettingsScreen() {
   const db = useSQLiteContext();
   const { transactions, refresh } = useFinance();
-  const { hasPin, setPin, removePin, lock } = useSecurity();
+  const { securityAvailable, hasPin, setPin, removePin, lock } = useSecurity();
   const [pin, setPinValue] = useState('');
   const [busy, setBusy] = useState(false);
   const [backupPassword, setBackupPassword] = useState('');
@@ -128,11 +128,22 @@ export default function SettingsScreen() {
       <View style={styles.content}>
         <Text style={styles.section}>App lock</Text>
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{hasPin ? 'PIN protection is on' : 'Set a 4-digit PIN'}</Text>
-          <Text style={styles.cardText}>Biometric unlock is available when supported by your device.</Text>
-          {!hasPin ? (
+          <Text style={styles.cardTitle}>
+            {!securityAvailable
+              ? 'App lock requires Android or iOS'
+              : hasPin
+                ? 'PIN protection is on'
+                : 'Set a 4-digit PIN'}
+          </Text>
+          <Text style={styles.cardText}>
+            {securityAvailable
+              ? 'Biometric unlock is available when supported by your device.'
+              : 'Secure storage, biometrics, and screen-capture protection are native-only.'}
+          </Text>
+          {!securityAvailable ? null : !hasPin ? (
             <>
               <TextInput
+                accessibilityLabel="Choose a 4-digit PIN"
                 value={pin}
                 onChangeText={(value) => setPinValue(value.replace(/\D/g, '').slice(0, 4))}
                 secureTextEntry
@@ -146,7 +157,7 @@ export default function SettingsScreen() {
           ) : (
             <>
               <Action label="Lock now" icon="lock-closed-outline" onPress={lock} />
-              <Pressable onPress={() => void removePin()}><Text style={styles.danger}>Remove PIN</Text></Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel="Remove PIN" onPress={() => void removePin()}><Text style={styles.danger}>Remove PIN</Text></Pressable>
             </>
           )}
         </View>
@@ -155,6 +166,7 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <Action label="Export transactions as CSV" icon="document-text-outline" onPress={() => void exportCsv()} disabled={busy} />
           <TextInput
+            accessibilityLabel="Backup password"
             value={backupPassword}
             onChangeText={setBackupPassword}
             secureTextEntry
@@ -174,7 +186,7 @@ export default function SettingsScreen() {
 
 function Action({ label, icon, onPress, disabled = false }: { label: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void; disabled?: boolean }) {
   return (
-    <Pressable disabled={disabled} onPress={onPress} style={[styles.action, disabled && styles.disabled]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[styles.action, disabled && styles.disabled]}>
       <Ionicons name={icon} size={20} color={colors.primary} />
       <Text style={styles.actionText}>{label}</Text>
       <Ionicons name="chevron-forward" size={17} color={colors.muted} />

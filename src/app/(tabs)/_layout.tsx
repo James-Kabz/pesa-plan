@@ -26,15 +26,27 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
         tabBarIcon: ({ color, size }) => (
-          <Ionicons name={icons[route.name] ?? 'ellipse-outline'} color={color} size={size} />
+          <Ionicons
+            accessible={false}
+            importantForAccessibility="no-hide-descendants"
+            name={icons[route.name] ?? 'ellipse-outline'}
+            color={color}
+            size={size}
+          />
         ),
       })}
     >
-      <Tabs.Screen name="index" options={{ title: 'Home' }} />
-      <Tabs.Screen name="transactions" options={{ title: 'Activity' }} />
-      <Tabs.Screen name="plan" options={{ title: 'Plan' }} />
-      <Tabs.Screen name="debt" options={{ title: 'Debt' }} />
-      <Tabs.Screen name="reports" options={{ title: 'Reports' }} />
+      <Tabs.Screen name="index" options={{ title: 'Home', tabBarAccessibilityLabel: 'Home' }} />
+      <Tabs.Screen
+        name="transactions"
+        options={{ title: 'Activity', tabBarAccessibilityLabel: 'Activity' }}
+      />
+      <Tabs.Screen name="plan" options={{ title: 'Plan', tabBarAccessibilityLabel: 'Plan' }} />
+      <Tabs.Screen name="debt" options={{ title: 'Debt', tabBarAccessibilityLabel: 'Debt' }} />
+      <Tabs.Screen
+        name="reports"
+        options={{ title: 'Reports', tabBarAccessibilityLabel: 'Reports' }}
+      />
     </Tabs>
   );
 }

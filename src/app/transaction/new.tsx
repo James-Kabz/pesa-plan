@@ -99,6 +99,9 @@ export default function NewTransactionScreen() {
           <View style={styles.segment}>
             {(['expense', 'income'] as const).map((option) => (
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${option} transaction type`}
+                accessibilityState={{ selected: type === option }}
                 key={option}
                 onPress={() => changeType(option)}
                 style={[styles.segmentOption, type === option && styles.segmentSelected]}
@@ -114,6 +117,7 @@ export default function NewTransactionScreen() {
           <View style={styles.amountRow}>
             <Text style={styles.currency}>{selectedAccount?.currency ?? 'KES'}</Text>
             <TextInput
+              accessibilityLabel="Transaction amount"
               autoFocus
               value={amount}
               onChangeText={setAmount}
@@ -129,6 +133,9 @@ export default function NewTransactionScreen() {
             <View style={styles.chips}>
               {accounts.map((account) => (
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${account.name} account`}
+                  accessibilityState={{ selected: accountId === account.id }}
                   key={account.id}
                   onPress={() => setAccountId(account.id)}
                   style={[styles.chip, accountId === account.id && styles.chipSelected]}
@@ -154,6 +161,9 @@ export default function NewTransactionScreen() {
               const selected = category.id === categoryId;
               return (
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${category.name} category`}
+                  accessibilityState={{ selected }}
                   key={category.id}
                   onPress={() => setCategoryId(category.id)}
                   style={[styles.category, selected && styles.categorySelected]}
@@ -183,6 +193,7 @@ export default function NewTransactionScreen() {
 
           <Text style={styles.label}>Note (optional)</Text>
           <TextInput
+            accessibilityLabel="Transaction note"
             value={note}
             onChangeText={setNote}
             placeholder="What was this for?"
@@ -191,6 +202,9 @@ export default function NewTransactionScreen() {
           />
 
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={existing ? 'Update transaction' : `Save ${type}`}
+            accessibilityState={{ disabled: saving }}
             disabled={saving}
             onPress={() => void save()}
             style={({ pressed }) => [styles.save, (pressed || saving) && styles.savePressed]}

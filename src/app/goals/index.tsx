@@ -34,6 +34,8 @@ export default function GoalsScreen() {
         const progress = Math.min(1, goal.savedMinor / goal.targetMinor);
         return (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${goal.name} savings goal`}
             key={goal.id}
             style={styles.card}
             onPress={() => router.push({ pathname: '/goal/editor', params: { id: goal.id } })}

@@ -56,6 +56,7 @@ export default function TransactionsScreen() {
       <View style={styles.search}>
         <Ionicons name="search-outline" size={19} color={colors.muted} />
         <TextInput
+          accessibilityLabel="Search activity"
           value={query}
           onChangeText={setQuery}
           placeholder="Search activity"
@@ -71,6 +72,9 @@ export default function TransactionsScreen() {
       <View style={styles.filters}>
         {(['all', 'expense', 'income', 'transfer'] as const).map((option) => (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Show ${option} activity`}
+            accessibilityState={{ selected: filter === option }}
             key={option}
             onPress={() => setFilter(option)}
             style={[styles.filter, filter === option && styles.filterSelected]}

@@ -44,11 +44,11 @@ export default function GoalEditorScreen() {
         {!goal ? (
           <>
             <Text style={styles.label}>Goal name</Text>
-            <TextInput autoFocus value={name} onChangeText={setName} placeholder="e.g. Emergency fund" placeholderTextColor="#98A19B" style={styles.input} />
+            <TextInput accessibilityLabel="Goal name" autoFocus value={name} onChangeText={setName} placeholder="e.g. Emergency fund" placeholderTextColor="#98A19B" style={styles.input} />
             <Text style={styles.label}>Goal type</Text>
             <View style={styles.segment}>
               {(['general', 'emergency'] as const).map((type) => (
-                <Pressable key={type} onPress={() => setGoalType(type)} style={[styles.segmentOption, goalType === type && styles.segmentSelected]}>
+                <Pressable accessibilityRole="button" accessibilityLabel={`${type} goal type`} accessibilityState={{ selected: goalType === type }} key={type} onPress={() => setGoalType(type)} style={[styles.segmentOption, goalType === type && styles.segmentSelected]}>
                   <Text style={[styles.segmentText, goalType === type && styles.segmentTextSelected]}>{type === 'general' ? 'General' : 'Emergency'}</Text>
                 </Pressable>
               ))}
@@ -58,9 +58,9 @@ export default function GoalEditorScreen() {
         <Text style={styles.label}>{goal ? 'Contribution' : 'Target amount'}</Text>
         <View style={styles.moneyRow}>
           <Text style={styles.currency}>KES</Text>
-          <TextInput autoFocus={Boolean(goal)} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.amount} />
+          <TextInput accessibilityLabel={goal ? 'Contribution amount' : 'Target amount'} autoFocus={Boolean(goal)} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.amount} />
         </View>
-        <Pressable disabled={saving} style={[styles.save, saving && styles.disabled]} onPress={() => void submit()}>
+        <Pressable accessibilityRole="button" accessibilityLabel={goal ? 'Add contribution' : 'Create goal'} accessibilityState={{ disabled: saving }} disabled={saving} style={[styles.save, saving && styles.disabled]} onPress={() => void submit()}>
           <Text style={styles.saveText}>{saving ? 'Saving…' : goal ? 'Add contribution' : 'Create goal'}</Text>
         </Pressable>
       </View>

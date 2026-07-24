@@ -29,6 +29,9 @@ export default function AccountsScreen() {
         <Text style={styles.totalValue}>{formatMoney(total)}</Text>
         <Text style={styles.totalMeta}>{accounts.length} active accounts</Text>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={accounts.length < 2 ? 'Add two accounts to transfer' : 'Transfer money'}
+          accessibilityState={{ disabled: accounts.length < 2 }}
           disabled={accounts.length < 2}
           style={[styles.transferButton, accounts.length < 2 && styles.disabled]}
           onPress={() => router.push('/transfer/new')}
@@ -44,6 +47,8 @@ export default function AccountsScreen() {
       <View style={styles.list}>
         {accounts.map((account) => (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${account.name} account`}
             key={account.id}
             style={({ pressed }) => [styles.row, pressed && styles.pressed]}
             onPress={() =>
@@ -71,7 +76,7 @@ export default function AccountsScreen() {
         ))}
       </View>
 
-      <Pressable style={styles.addButton} onPress={() => router.push('/account/editor')}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Add another account" style={styles.addButton} onPress={() => router.push('/account/editor')}>
         <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
         <Text style={styles.addText}>Add another account</Text>
       </Pressable>

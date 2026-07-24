@@ -34,8 +34,8 @@ npm install
 npm start
 ```
 
-Then press `a` for Android or `i` for iOS. The app is mobile-first; Expo SQLite's
-web support is currently alpha.
+Then press `a` for Android or `i` for iOS. Press `w` for the configured web
+preview; the app remains mobile-first and Expo SQLite's web support is alpha.
 
 ## Quality checks
 
@@ -46,7 +46,7 @@ npm run release:check
 ```
 
 `release:check` runs strict TypeScript validation, the unit and SQLite
-integration suites, Expo Doctor, and a production Android JavaScript export.
+integration suites, Expo Doctor, and production Android and web exports.
 The same gate runs in GitHub Actions for pushes and pull requests.
 
 ## Architecture

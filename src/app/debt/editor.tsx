@@ -68,24 +68,24 @@ export default function DebtEditorScreen() {
         ) : (
           <>
             <Text style={styles.label}>Debt name</Text>
-            <TextInput autoFocus value={name} onChangeText={setName} placeholder="e.g. Visa card" placeholderTextColor="#98A19B" style={styles.input} />
+            <TextInput accessibilityLabel="Debt name" autoFocus value={name} onChangeText={setName} placeholder="e.g. Visa card" placeholderTextColor="#98A19B" style={styles.input} />
             <Text style={styles.label}>Creditor (optional)</Text>
-            <TextInput value={creditor} onChangeText={setCreditor} placeholder="Bank or lender" placeholderTextColor="#98A19B" style={styles.input} />
+            <TextInput accessibilityLabel="Creditor" value={creditor} onChangeText={setCreditor} placeholder="Bank or lender" placeholderTextColor="#98A19B" style={styles.input} />
             <Text style={styles.label}>Current balance</Text>
             <MoneyInput value={balance} onChangeText={setBalance} />
             <View style={styles.columns}>
               <View style={styles.field}>
                 <Text style={styles.label}>APR %</Text>
-                <TextInput value={apr} onChangeText={setApr} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#98A19B" style={styles.input} />
+                <TextInput accessibilityLabel="Annual percentage rate" value={apr} onChangeText={setApr} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#98A19B" style={styles.input} />
               </View>
               <View style={styles.field}>
                 <Text style={styles.label}>Minimum payment</Text>
-                <TextInput value={minimum} onChangeText={setMinimum} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#98A19B" style={styles.input} />
+                <TextInput accessibilityLabel="Minimum payment" value={minimum} onChangeText={setMinimum} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#98A19B" style={styles.input} />
               </View>
             </View>
           </>
         )}
-        <Pressable disabled={saving} style={[styles.save, saving && styles.disabled]} onPress={() => void submit()}>
+        <Pressable accessibilityRole="button" accessibilityLabel={debt ? 'Record debt payment' : 'Add debt'} accessibilityState={{ disabled: saving }} disabled={saving} style={[styles.save, saving && styles.disabled]} onPress={() => void submit()}>
           <Text style={styles.saveText}>{saving ? 'Saving…' : debt ? 'Record payment' : 'Add debt'}</Text>
         </Pressable>
       </ScrollView>
@@ -97,7 +97,7 @@ function MoneyInput({ value, onChangeText, autoFocus = false }: { value: string;
   return (
     <View style={styles.moneyRow}>
       <Text style={styles.currency}>KES</Text>
-      <TextInput autoFocus={autoFocus} value={value} onChangeText={onChangeText} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.money} />
+      <TextInput accessibilityLabel="Money amount" autoFocus={autoFocus} value={value} onChangeText={onChangeText} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.money} />
     </View>
   );
 }

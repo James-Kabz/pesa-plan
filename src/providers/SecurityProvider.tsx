@@ -2,9 +2,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Crypto from 'expo-crypto';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
-import { usePreventScreenCapture } from 'expo-screen-capture';
+import * as ScreenCapture from 'expo-screen-capture';
 import {
   AppState,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -26,6 +27,7 @@ const PIN_KEY = 'pesa-plan-pin-v1';
 const LOCK_DELAY_MS = 2 * 60 * 1000;
 
 interface SecurityContextValue {
+  securityAvailable: boolean;
   hasPin: boolean;
   setPin: (pin: string) => Promise<void>;
   removePin: () => Promise<void>;
@@ -39,7 +41,7 @@ async function hashPin(pin: string): Promise<string> {
 }
 
 export function SecurityProvider({ children }: { children: React.ReactNode }) {
-  usePreventScreenCapture('pesa-plan-private');
+  const securityAvailable = Platform.OS !== 'web';
   const [ready, setReady] = useState(false);
   const [hasPin, setHasPin] = useState(false);
   const [unlocked, setUnlocked] = useState(true);
@@ -47,12 +49,24 @@ export function SecurityProvider({ children }: { children: React.ReactNode }) {
   const lockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (!securityAvailable) {
+      setReady(true);
+      return;
+    }
     void SecureStore.getItemAsync(PIN_KEY).then((saved) => {
       setHasPin(Boolean(saved));
       setUnlocked(!saved);
       setReady(true);
     });
-  }, []);
+  }, [securityAvailable]);
+
+  useEffect(() => {
+    if (!securityAvailable) return;
+    void ScreenCapture.preventScreenCaptureAsync('pesa-plan-private');
+    return () => {
+      void ScreenCapture.allowScreenCaptureAsync('pesa-plan-private');
+    };
+  }, [securityAvailable]);
 
   const lock = useCallback(() => {
     if (hasPin) setUnlocked(false);
@@ -80,18 +94,23 @@ export function SecurityProvider({ children }: { children: React.ReactNode }) {
   }, [lock]);
 
   const setPin = useCallback(async (pin: string) => {
+    if (!securityAvailable) throw new Error('App lock is unavailable on web');
     await SecureStore.setItemAsync(PIN_KEY, await hashPin(pin));
     setHasPin(true);
     setUnlocked(true);
-  }, []);
+  }, [securityAvailable]);
 
   const removePin = useCallback(async () => {
+    if (!securityAvailable) return;
     await SecureStore.deleteItemAsync(PIN_KEY);
     setHasPin(false);
     setUnlocked(true);
-  }, []);
+  }, [securityAvailable]);
 
-  const value = useMemo(() => ({ hasPin, setPin, removePin, lock }), [hasPin, lock, removePin, setPin]);
+  const value = useMemo(
+    () => ({ securityAvailable, hasPin, setPin, removePin, lock }),
+    [securityAvailable, hasPin, lock, removePin, setPin],
+  );
 
   if (!ready) return <View style={styles.cover} />;
 
@@ -144,6 +163,7 @@ function UnlockScreen({ onUnlock }: { onUnlock: () => void }) {
       <Text style={styles.unlockTitle}>Pesa Plan is locked</Text>
       <Text style={styles.unlockText}>Enter your 4-digit PIN to continue.</Text>
       <TextInput
+        accessibilityLabel="4-digit PIN"
         autoFocus
         secureTextEntry
         value={pin}
@@ -153,7 +173,7 @@ function UnlockScreen({ onUnlock }: { onUnlock: () => void }) {
         onSubmitEditing={() => void verify()}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Pressable disabled={pin.length !== 4} style={[styles.unlockButton, pin.length !== 4 && styles.disabled]} onPress={() => void verify()}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Unlock app" accessibilityState={{ disabled: pin.length !== 4 }} disabled={pin.length !== 4} style={[styles.unlockButton, pin.length !== 4 && styles.disabled]} onPress={() => void verify()}>
         <Text style={styles.unlockButtonText}>Unlock</Text>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="Unlock with biometrics" style={styles.bioButton} onPress={() => void useBiometric()}>

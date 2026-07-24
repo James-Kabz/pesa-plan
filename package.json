@@ -47,7 +47,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "npm run typecheck && npm test && npx expo-doctor",
-    "release:check": "npm run check && npx expo export --platform android --output-dir work/release-android"
+    "release:check": "npm run check && npx expo export --platform android --output-dir work/release-android && npx expo export --platform web --output-dir work/release-web"
   },
   "private": true
 }

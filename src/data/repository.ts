@@ -22,6 +22,7 @@ import type {
   TransactionKind,
   TransactionType,
 } from '@/domain/types';
+import { withDatabaseTransaction } from './databaseTransaction';
 
 interface AccountRow {
   id: string;
@@ -229,7 +230,7 @@ export async function saveAccount(db: SQLiteDatabase, account: AccountInput): Pr
 }
 
 export async function deleteTransaction(db: SQLiteDatabase, id: string): Promise<void> {
-  await db.withExclusiveTransactionAsync(async (transaction) => {
+  await withDatabaseTransaction(db, async (transaction) => {
     await transaction.runAsync('DELETE FROM transactions WHERE id = ?', id);
     await transaction.runAsync('DELETE FROM transfers WHERE id = ?', id);
   });
@@ -293,7 +294,7 @@ export async function createRecurring(db: SQLiteDatabase, input: RecurringInput)
 }
 
 export async function postRecurring(db: SQLiteDatabase, schedule: RecurringTransaction): Promise<void> {
-  await db.withExclusiveTransactionAsync(async (transaction) => {
+  await withDatabaseTransaction(db, async (transaction) => {
     await transaction.runAsync(
       `INSERT INTO transactions
         (id, account_id, category_id, type, amount_minor, note, occurred_at, created_at)
@@ -446,7 +447,7 @@ export async function recordDebtPayment(
   amountMinor: number,
   note?: string,
 ): Promise<void> {
-  await db.withExclusiveTransactionAsync(async (transaction) => {
+  await withDatabaseTransaction(db, async (transaction) => {
     const debt = await transaction.getFirstAsync<{ balance_minor: number }>(
       'SELECT balance_minor FROM debts WHERE id = ?',
       debtId,

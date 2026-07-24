@@ -22,6 +22,9 @@ export function TransactionRow({
 
   return (
     <Pressable
+      accessibilityRole={onPress || onLongPress ? 'button' : undefined}
+      accessibilityLabel={`${transaction.note || transaction.categoryName}, ${transaction.accountName}, ${date}, ${isTransfer ? '' : isIncome ? 'income ' : 'expense '}${formatMoney(transaction.amountMinor, transaction.currency)}`}
+      accessibilityHint={onLongPress ? 'Long press to delete' : undefined}
       style={({ pressed }) => [styles.row, pressed && onLongPress ? styles.pressed : undefined]}
       onLongPress={onLongPress}
       onPress={onPress}

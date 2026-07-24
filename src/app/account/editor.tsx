@@ -90,6 +90,7 @@ export default function AccountEditorScreen() {
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
           <Text style={styles.label}>Account name</Text>
           <TextInput
+            accessibilityLabel="Account name"
             autoFocus
             value={name}
             onChangeText={setName}
@@ -104,6 +105,9 @@ export default function AccountEditorScreen() {
               const selected = type === option.value;
               return (
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${option.label} account type`}
+                  accessibilityState={{ selected }}
                   key={option.value}
                   onPress={() => setType(option.value)}
                   style={[styles.typeOption, selected && styles.typeSelected]}
@@ -125,6 +129,7 @@ export default function AccountEditorScreen() {
             <View style={styles.field}>
               <Text style={styles.label}>Currency</Text>
               <TextInput
+                accessibilityLabel="Account currency"
                 value={currency}
                 onChangeText={setCurrency}
                 autoCapitalize="characters"
@@ -135,6 +140,7 @@ export default function AccountEditorScreen() {
             <View style={styles.field}>
               <Text style={styles.label}>Opening balance</Text>
               <TextInput
+                accessibilityLabel="Opening balance"
                 value={openingBalance}
                 onChangeText={setOpeningBalance}
                 keyboardType="decimal-pad"
@@ -171,6 +177,9 @@ export default function AccountEditorScreen() {
           ) : null}
 
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Save account"
+            accessibilityState={{ disabled: saving }}
             disabled={saving}
             onPress={() => void submit()}
             style={({ pressed }) => [styles.save, (pressed || saving) && styles.pressed]}

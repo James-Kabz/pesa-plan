@@ -5,6 +5,7 @@ import { sha256 } from '@noble/hashes/sha2.js';
 import { utf8ToBytes } from '@noble/hashes/utils.js';
 import { fromByteArray, toByteArray } from 'base64-js';
 import { getRandomBytesAsync } from 'expo-crypto';
+import { withDatabaseTransaction } from './databaseTransaction';
 
 type BackupValue = string | number | null;
 type BackupRow = Record<string, BackupValue>;
@@ -139,7 +140,7 @@ export async function restoreBackup(
     columnsByTable[table] = info.map((column) => column.name);
   }
 
-  await db.withExclusiveTransactionAsync(async (transaction) => {
+  await withDatabaseTransaction(db, async (transaction) => {
     for (const table of DELETE_ORDER) {
       await transaction.execAsync(`DELETE FROM ${table}`);
     }

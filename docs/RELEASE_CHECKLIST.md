@@ -7,6 +7,7 @@
 - [x] All migration, encryption, CSV, and money-calculation tests pass
 - [x] Expo Doctor reports 20/20 checks
 - [x] Android production bundle completes
+- [x] Web production bundle completes with SQLite worker headers
 - [x] Android native prebuild applies the branded icon and disables OS cloud backup
 - [x] GitHub Actions workflow is configured to repeat the locked-install release gate
 - [ ] First hosted GitHub Actions run passes after a remote is connected
@@ -23,10 +24,18 @@
 - [ ] VoiceOver labels icon-only actions and form controls
 - [ ] Light and dark system settings remain readable
 
+## Browser responsive smoke
+
+- [x] 360 × 640 viewport has no horizontal overflow or clipped controls
+- [x] 390 × 844 viewport has no horizontal overflow or clipped controls
+- [x] 768 × 1024 viewport has no horizontal overflow or clipped controls
+- [x] Tabs, actions, filters, and form controls expose explicit accessibility semantics
+
 ## Finance and data integrity
 
 - [x] Automated fresh-database test creates the starter account and 12 categories
 - [x] Automated populated version-1 fixture upgrades through version 7 without data loss
+- [x] Automated interrupted initial migration recovers without losing existing rows
 - [ ] Repeat the version-1 upgrade on a physical device
 - [x] Integration tests cover income, expense, edit, delete, transfer, and recurring balances
 - [x] Integration tests prove KES reports exclude accounts in other currencies

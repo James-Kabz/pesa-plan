@@ -32,6 +32,32 @@ describe('database migrations', () => {
     raw.close();
   });
 
+  it('recovers an interrupted initial migration without overwriting existing rows', async () => {
+    const { raw, expo } = await createTestDatabase();
+    await expo.execAsync(`
+      CREATE TABLE accounts (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK (type IN ('cash', 'bank', 'mobile_money', 'credit')),
+        currency TEXT NOT NULL DEFAULT 'KES',
+        opening_balance_minor INTEGER NOT NULL DEFAULT 0,
+        color TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      INSERT INTO accounts VALUES
+        ('starter-cash', 'Recovered wallet', 'cash', 'KES', 5000, '#175C45', '2026-01-01');
+      PRAGMA user_version = 0;
+    `);
+
+    await migrateDatabase(expo);
+
+    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(7);
+    expect(raw.exec(`SELECT name FROM accounts WHERE id = 'starter-cash'`)[0].values)
+      .toEqual([['Recovered wallet']]);
+    expect(raw.exec('SELECT COUNT(*) FROM categories')[0].values[0][0]).toBe(12);
+    raw.close();
+  });
+
   it('enforces financial integrity constraints', async () => {
     const { raw, expo } = await createTestDatabase();
     await migrateDatabase(expo);

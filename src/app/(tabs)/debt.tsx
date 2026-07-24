@@ -35,6 +35,9 @@ export default function DebtScreen() {
       <View style={styles.segment}>
         {(['avalanche', 'snowball'] as const).map((option) => (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${option} debt strategy`}
+            accessibilityState={{ selected: strategy === option }}
             key={option}
             onPress={() => setStrategy(option)}
             style={[styles.segmentOption, strategy === option && styles.segmentSelected]}
@@ -61,6 +64,8 @@ export default function DebtScreen() {
         );
         return (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${debt.name} debt`}
             key={debt.id}
             style={styles.card}
             onPress={() => router.push({ pathname: '/debt/editor', params: { id: debt.id } })}

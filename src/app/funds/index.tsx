@@ -33,6 +33,8 @@ export default function FundsScreen() {
         const progress = Math.min(1, fund.savedMinor / fund.targetMinor);
         return (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${fund.name} sinking fund`}
             key={fund.id}
             style={styles.card}
             onPress={() => router.push({ pathname: '/fund/editor', params: { id: fund.id } })}

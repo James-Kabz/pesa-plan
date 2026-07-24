@@ -48,13 +48,13 @@ export default function FundEditorScreen() {
         {!fund ? (
           <>
             <Text style={styles.label}>Fund name</Text>
-            <TextInput autoFocus value={name} onChangeText={setName} placeholder="e.g. Car insurance" placeholderTextColor="#98A19B" style={styles.input} />
+            <TextInput accessibilityLabel="Fund name" autoFocus value={name} onChangeText={setName} placeholder="e.g. Car insurance" placeholderTextColor="#98A19B" style={styles.input} />
           </>
         ) : null}
         <Text style={styles.label}>{fund ? 'Contribution' : 'Savings target'}</Text>
         <View style={styles.amountRow}>
           <Text style={styles.currency}>KES</Text>
-          <TextInput autoFocus={Boolean(fund)} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.amount} />
+          <TextInput accessibilityLabel={fund ? 'Contribution amount' : 'Savings target'} autoFocus={Boolean(fund)} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.amount} />
         </View>
         {!fund ? (
           <>
@@ -68,7 +68,7 @@ export default function FundEditorScreen() {
             </View>
           </>
         ) : null}
-        <Pressable disabled={saving} style={[styles.save, saving && styles.disabled]} onPress={() => void submit()}>
+        <Pressable accessibilityRole="button" accessibilityLabel={fund ? 'Add contribution' : 'Create fund'} accessibilityState={{ disabled: saving }} disabled={saving} style={[styles.save, saving && styles.disabled]} onPress={() => void submit()}>
           <Text style={styles.saveText}>{saving ? 'Saving…' : fund ? 'Add contribution' : 'Create fund'}</Text>
         </Pressable>
       </View>

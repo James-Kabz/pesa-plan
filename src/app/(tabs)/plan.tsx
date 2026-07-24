@@ -46,7 +46,7 @@ export default function PlanScreen() {
       <Text style={styles.subtitle}>Upcoming recurring income and expenses.</Text>
 
       <Text style={styles.section}>This month’s budgets</Text>
-      <Pressable style={styles.secondaryAdd} onPress={() => router.push('/budget/editor')}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Set a category budget" style={styles.secondaryAdd} onPress={() => router.push('/budget/editor')}>
         <Ionicons name="add" size={18} color={colors.primary} />
         <Text style={styles.secondaryAddText}>Set a category budget</Text>
       </Pressable>
@@ -55,6 +55,8 @@ export default function PlanScreen() {
         const remaining = budget.limitMinor - budget.spentMinor;
         return (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Edit ${budget.categoryName} budget`}
             key={budget.id}
             style={styles.budget}
             onPress={() => router.push({ pathname: '/budget/editor', params: { id: budget.id } })}
@@ -73,7 +75,7 @@ export default function PlanScreen() {
         );
       })}
 
-      <Pressable style={styles.fundLink} onPress={() => router.push('/funds')}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Open sinking funds" style={styles.fundLink} onPress={() => router.push('/funds')}>
         <View style={styles.icon}>
           <Ionicons name="flag-outline" size={19} color={colors.primary} />
         </View>
@@ -83,7 +85,7 @@ export default function PlanScreen() {
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.muted} />
       </Pressable>
-      <Pressable style={styles.goalLink} onPress={() => router.push('/goals')}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Open savings goals" style={styles.goalLink} onPress={() => router.push('/goals')}>
         <View style={styles.icon}>
           <Ionicons name="sparkles-outline" size={19} color={colors.primary} />
         </View>
@@ -94,7 +96,7 @@ export default function PlanScreen() {
         <Ionicons name="chevron-forward" size={18} color={colors.muted} />
       </Pressable>
 
-      <Pressable style={styles.add} onPress={repeatLatest}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Repeat latest transaction monthly" style={styles.add} onPress={repeatLatest}>
         <Ionicons name="repeat-outline" size={20} color="#FFFFFF" />
         <Text style={styles.addText}>Repeat latest transaction monthly</Text>
       </Pressable>
@@ -121,7 +123,7 @@ export default function PlanScreen() {
                 </View>
                 <View style={styles.right}>
                   <Text style={styles.amount}>{formatMoney(item.amountMinor)}</Text>
-                  <Pressable onPress={() => void recordRecurring(item)}>
+                  <Pressable accessibilityRole="button" accessibilityLabel={`Post ${item.note || item.categoryName} now`} onPress={() => void recordRecurring(item)}>
                     <Text style={styles.post}>Post now</Text>
                   </Pressable>
                 </View>

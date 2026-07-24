@@ -1,4 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
+import { withDatabaseTransaction } from './databaseTransaction';
 
 const DATABASE_VERSION = 7;
 
@@ -25,7 +26,7 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
 
   if (version === 0) {
     await db.execAsync(`
-      CREATE TABLE accounts (
+      CREATE TABLE IF NOT EXISTS accounts (
         id TEXT PRIMARY KEY NOT NULL,
         name TEXT NOT NULL,
         type TEXT NOT NULL CHECK (type IN ('cash', 'bank', 'mobile_money', 'credit')),
@@ -35,7 +36,7 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
         created_at TEXT NOT NULL
       );
 
-      CREATE TABLE categories (
+      CREATE TABLE IF NOT EXISTS categories (
         id TEXT PRIMARY KEY NOT NULL,
         name TEXT NOT NULL,
         type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
@@ -43,7 +44,7 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
         color TEXT NOT NULL
       );
 
-      CREATE TABLE transactions (
+      CREATE TABLE IF NOT EXISTS transactions (
         id TEXT PRIMARY KEY NOT NULL,
         account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
         category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
@@ -54,13 +55,13 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
         created_at TEXT NOT NULL
       );
 
-      CREATE INDEX transactions_occurred_at_idx ON transactions(occurred_at DESC);
-      CREATE INDEX transactions_account_id_idx ON transactions(account_id);
+      CREATE INDEX IF NOT EXISTS transactions_occurred_at_idx ON transactions(occurred_at DESC);
+      CREATE INDEX IF NOT EXISTS transactions_account_id_idx ON transactions(account_id);
     `);
 
-    await db.withExclusiveTransactionAsync(async (transaction) => {
+    await withDatabaseTransaction(db, async (transaction) => {
       await transaction.runAsync(
-        `INSERT INTO accounts
+        `INSERT OR IGNORE INTO accounts
           (id, name, type, currency, opening_balance_minor, color, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         'starter-cash',
@@ -74,7 +75,7 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
 
       for (const category of categories) {
         await transaction.runAsync(
-          `INSERT INTO categories (id, name, type, icon, color)
+          `INSERT OR IGNORE INTO categories (id, name, type, icon, color)
            VALUES (?, ?, ?, ?, ?)`,
           ...category,
         );
@@ -86,7 +87,7 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
 
   if (version === 1) {
     await db.execAsync(`
-      CREATE TABLE transfers (
+      CREATE TABLE IF NOT EXISTS transfers (
         id TEXT PRIMARY KEY NOT NULL,
         from_account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
         to_account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
@@ -97,16 +98,16 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
         CHECK (from_account_id != to_account_id)
       );
 
-      CREATE INDEX transfers_from_account_idx ON transfers(from_account_id);
-      CREATE INDEX transfers_to_account_idx ON transfers(to_account_id);
-      CREATE INDEX transfers_occurred_at_idx ON transfers(occurred_at DESC);
+      CREATE INDEX IF NOT EXISTS transfers_from_account_idx ON transfers(from_account_id);
+      CREATE INDEX IF NOT EXISTS transfers_to_account_idx ON transfers(to_account_id);
+      CREATE INDEX IF NOT EXISTS transfers_occurred_at_idx ON transfers(occurred_at DESC);
     `);
     version = 2;
   }
 
   if (version === 2) {
     await db.execAsync(`
-      CREATE TABLE recurring_transactions (
+      CREATE TABLE IF NOT EXISTS recurring_transactions (
         id TEXT PRIMARY KEY NOT NULL,
         account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
         category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
@@ -124,7 +125,7 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
 
   if (version === 3) {
     await db.execAsync(`
-      CREATE TABLE monthly_budgets (
+      CREATE TABLE IF NOT EXISTS monthly_budgets (
         id TEXT PRIMARY KEY NOT NULL,
         category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
         month TEXT NOT NULL,
@@ -137,7 +138,7 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
 
   if (version === 4) {
     await db.execAsync(`
-      CREATE TABLE sinking_funds (
+      CREATE TABLE IF NOT EXISTS sinking_funds (
         id TEXT PRIMARY KEY NOT NULL,
         name TEXT NOT NULL,
         target_minor INTEGER NOT NULL CHECK (target_minor > 0),
@@ -152,7 +153,7 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
 
   if (version === 5) {
     await db.execAsync(`
-      CREATE TABLE savings_goals (
+      CREATE TABLE IF NOT EXISTS savings_goals (
         id TEXT PRIMARY KEY NOT NULL,
         name TEXT NOT NULL,
         target_minor INTEGER NOT NULL CHECK (target_minor > 0),
@@ -163,7 +164,7 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
         created_at TEXT NOT NULL
       );
 
-      CREATE TABLE debts (
+      CREATE TABLE IF NOT EXISTS debts (
         id TEXT PRIMARY KEY NOT NULL,
         name TEXT NOT NULL,
         creditor TEXT,
@@ -175,7 +176,7 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
         created_at TEXT NOT NULL
       );
 
-      CREATE TABLE debt_payments (
+      CREATE TABLE IF NOT EXISTS debt_payments (
         id TEXT PRIMARY KEY NOT NULL,
         debt_id TEXT NOT NULL REFERENCES debts(id) ON DELETE CASCADE,
         amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
@@ -183,14 +184,14 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
         note TEXT,
         created_at TEXT NOT NULL
       );
-      CREATE INDEX debt_payments_debt_idx ON debt_payments(debt_id, paid_at DESC);
+      CREATE INDEX IF NOT EXISTS debt_payments_debt_idx ON debt_payments(debt_id, paid_at DESC);
     `);
     version = 6;
   }
 
   if (version === 6) {
     await db.execAsync(`
-      CREATE TABLE financial_snapshots (
+      CREATE TABLE IF NOT EXISTS financial_snapshots (
         month TEXT PRIMARY KEY NOT NULL,
         account_balance_minor INTEGER NOT NULL,
         debt_balance_minor INTEGER NOT NULL,

@@ -82,6 +82,7 @@ export default function NewTransferScreen() {
           <View style={styles.amountRow}>
             <Text style={styles.currency}>{from?.currency ?? 'KES'}</Text>
             <TextInput
+              accessibilityLabel="Transfer amount"
               autoFocus
               value={amount}
               onChangeText={setAmount}
@@ -126,6 +127,7 @@ export default function NewTransferScreen() {
 
           <Text style={styles.label}>Note (optional)</Text>
           <TextInput
+            accessibilityLabel="Transfer note"
             value={note}
             onChangeText={setNote}
             placeholder="Purpose of transfer"
@@ -133,6 +135,9 @@ export default function NewTransferScreen() {
             style={styles.note}
           />
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Record transfer"
+            accessibilityState={{ disabled: saving || !toId }}
             disabled={saving || !toId}
             onPress={() => void submit()}
             style={({ pressed }) => [styles.save, (pressed || saving || !toId) && styles.disabled]}
@@ -157,7 +162,7 @@ function AccountOption({
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} style={[styles.option, selected && styles.optionSelected]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${name}, balance ${balance}`} accessibilityState={{ selected }} onPress={onPress} style={[styles.option, selected && styles.optionSelected]}>
       <View style={styles.optionIcon}>
         <Ionicons name="wallet-outline" size={19} color={colors.primary} />
       </View>

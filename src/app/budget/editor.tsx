@@ -57,6 +57,7 @@ export default function BudgetEditorScreen() {
         <View style={styles.amountRow}>
           <Text style={styles.currency}>KES</Text>
           <TextInput
+            accessibilityLabel="Monthly budget limit"
             autoFocus
             value={amount}
             onChangeText={setAmount}
@@ -73,6 +74,9 @@ export default function BudgetEditorScreen() {
             const selected = category.id === categoryId;
             return (
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${category.name} category`}
+                accessibilityState={{ selected, disabled: Boolean(existing) }}
                 key={category.id}
                 disabled={Boolean(existing)}
                 onPress={() => setCategoryId(category.id)}
@@ -91,11 +95,11 @@ export default function BudgetEditorScreen() {
           })}
         </View>
 
-        <Pressable disabled={saving} style={[styles.save, saving && styles.disabled]} onPress={() => void submit()}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Save budget" accessibilityState={{ disabled: saving }} disabled={saving} style={[styles.save, saving && styles.disabled]} onPress={() => void submit()}>
           <Text style={styles.saveText}>{saving ? 'Saving…' : 'Save budget'}</Text>
         </Pressable>
         {existing ? (
-          <Pressable style={styles.delete} onPress={confirmDelete}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Remove budget" style={styles.delete} onPress={confirmDelete}>
             <Text style={styles.deleteText}>Remove budget</Text>
           </Pressable>
         ) : null}
