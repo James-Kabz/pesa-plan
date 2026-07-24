@@ -30,3 +30,7 @@ collection are not included in Version 1.
 - GitHub Actions clean-install release gate.
 - Android 16 physical-device navigation, font scaling, small-display,
   privacy, backup, persistence, and PIN lifecycle checks.
+- Signed Android internal build installed and tested without Metro or network
+  connectivity.
+- Password-encrypted backup restored successfully and persisted through a
+  signed-app cold restart.

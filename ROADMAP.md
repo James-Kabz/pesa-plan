@@ -59,14 +59,14 @@ Status: **Complete**
 
 ## Stage 6 — Testing and release
 
-Status: **In progress**
+Status: **Android Version 1 release candidate complete; production artifact in progress**
 
 - [x] Unit tests for money, backup, and export calculations
 - [x] Executable database migration and integrity tests
 - [x] Reproducible clean-install CI release gate
 - [x] Browser responsive and accessibility-semantics smoke testing
-- [ ] Physical-device accessibility, font-scaling, and device-size testing
-- [ ] Android internal testing
+- [x] Physical-device accessibility semantics, font-scaling, and device-size testing
+- [x] Android internal testing
 - [ ] iOS TestFlight
 - [x] Store privacy disclosure draft and EAS release configuration
 - [ ] Store submissions and production release

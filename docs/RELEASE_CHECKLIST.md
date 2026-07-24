@@ -41,7 +41,7 @@
 - [x] Integration tests prove KES reports exclude accounts in other currencies
 - [x] Backup decrypts with the correct password and rejects a wrong password
 - [x] Integration test replaces all supported tables and rolls back invalid restore rows
-- [ ] Restored app restarts cleanly on a physical device
+- [x] Restored app restarts cleanly on a physical device
 
 ## Security
 
@@ -53,8 +53,8 @@
 ## Distribution
 
 - [ ] Confirm `com.jimkar.pesaplan` identifiers are available
-- [ ] Configure the EAS project and signing credentials
-- [ ] Build the `preview` profile and complete Android internal testing
+- [x] Configure the EAS project and signing credentials
+- [x] Build the `preview` profile and complete Android internal testing
 - [ ] Build the `production` profile
 - [ ] Complete Play Console data-safety disclosure from `PRIVACY.md`
 - [ ] Complete Apple App Privacy disclosure from `PRIVACY.md`
@@ -78,5 +78,11 @@ Device: Samsung Galaxy A55 (`SM-A556E`), Android 16.
   that financial content was not exposed.
 - A password-encrypted `.ppbackup` file was generated and handed to Android's
   native share sheet.
+- EAS preview build `60ec126d-ed6f-4458-9dc4-e19df801c316` produced a signed
+  Version 1.0.0 APK with package ID `com.jimkar.pesaplan` and version code 1.
+- The signed APK launched without Metro or network connectivity, restored the
+  encrypted device backup, retained the Ksh 47,700 Salary ledger after a cold
+  restart, and emitted no fatal or React Native JavaScript errors.
+- Screen capture from the signed APK exposed no financial data.
 - The original display size, 420 dpi override, 90% font scale, app data, and
   no-PIN state were restored after testing.

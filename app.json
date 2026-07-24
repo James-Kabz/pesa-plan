@@ -17,6 +17,9 @@
     "android": {
       "package": "com.jimkar.pesaplan",
       "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#0F2D23",
         "foregroundImage": "./assets/pesa-plan-icon-v1.png"
