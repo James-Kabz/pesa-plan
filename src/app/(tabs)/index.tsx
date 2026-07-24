@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { TransactionRow } from '@/components/TransactionRow';
+import { getTimeGreeting } from '@/domain/greeting';
 import { formatMoney } from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
@@ -13,6 +14,7 @@ import { colors, radius, spacing } from '@/theme';
 export default function DashboardScreen() {
   const { accounts, monthlySummary, transactions } = useFinance();
   const [amountsVisible, setAmountsVisible] = useState(true);
+  const [greeting, setGreeting] = useState(() => getTimeGreeting());
   const privateValue = (value: string) => (amountsVisible ? value : '••••••');
   const totalBalance = accounts
     .filter((account) => account.currency === 'KES')
@@ -21,12 +23,17 @@ export default function DashboardScreen() {
     new Date(),
   );
 
+  useEffect(() => {
+    const timer = setInterval(() => setGreeting(getTimeGreeting()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <Screen>
       <View style={styles.header}>
         <View>
           <Text style={styles.eyebrow}>YOUR MONEY</Text>
-          <Text style={styles.greeting}>Good day</Text>
+          <Text style={styles.greeting}>{greeting}</Text>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel="Open privacy and data settings" style={styles.profile} onPress={() => router.push('/settings')}>
           <Ionicons name="person-outline" size={19} color={colors.primary} />

@@ -5,6 +5,8 @@ begins.
 
 ## Improvements
 
+- Home greets the user with good morning, afternoon, or evening based on the
+  device's local time.
 - A single eye control on Home hides or reveals the main balance, monthly
   income, spending, savings rate, account-card balances, and recent-activity
   amounts.
