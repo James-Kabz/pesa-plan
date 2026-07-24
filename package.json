@@ -10,6 +10,7 @@
     "expo": "~57.0.8",
     "expo-constants": "~57.0.7",
     "expo-crypto": "~57.0.1",
+    "expo-dev-client": "~57.0.9",
     "expo-document-picker": "~57.0.1",
     "expo-file-system": "~57.0.1",
     "expo-font": "~57.0.1",
@@ -40,9 +41,9 @@
     "vitest": "^4.1.10"
   },
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "start": "expo start --dev-client",
+    "android": "JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/Users/$USER/Library/Android/sdk ANDROID_SDK_ROOT=/Users/$USER/Library/Android/sdk expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

@@ -29,13 +29,22 @@ See [ROADMAP.md](./ROADMAP.md) for the durable delivery plan and status.
 
 ## Run locally
 
+Install the Android development build once on a connected device:
+
 ```bash
 npm install
+npm run android
+```
+
+After that, start Metro for the installed Pesa Plan development build:
+
+```bash
 npm start
 ```
 
-Then press `a` for Android or `i` for iOS. Press `w` for the configured web
-preview; the app remains mobile-first and Expo SQLite's web support is alpha.
+Then press `a` for Android. The SDK 57 app uses a dedicated development build,
+not Expo Go. Press `w` for the configured web preview; the app remains
+mobile-first and Expo SQLite's web support is alpha.
 
 ## Quality checks
 
