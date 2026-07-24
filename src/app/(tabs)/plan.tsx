@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
-import { formatMoney } from '@/domain/money';
+import { formatMoney, getDueStatus } from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
@@ -45,11 +46,19 @@ export default function PlanScreen() {
       <Text style={styles.subtitle}>Upcoming recurring income and expenses.</Text>
 
       <Text style={styles.section}>This month’s budgets</Text>
+      <Pressable style={styles.secondaryAdd} onPress={() => router.push('/budget/editor')}>
+        <Ionicons name="add" size={18} color={colors.primary} />
+        <Text style={styles.secondaryAddText}>Set a category budget</Text>
+      </Pressable>
       {budgets.map((budget) => {
         const ratio = Math.min(1, budget.spentMinor / budget.limitMinor);
         const remaining = budget.limitMinor - budget.spentMinor;
         return (
-          <View key={budget.id} style={styles.budget}>
+          <Pressable
+            key={budget.id}
+            style={styles.budget}
+            onPress={() => router.push({ pathname: '/budget/editor', params: { id: budget.id } })}
+          >
             <View style={styles.budgetTop}>
               <Text style={styles.name}>{budget.categoryName}</Text>
               <Text style={[styles.amount, remaining < 0 && { color: colors.expense }]}>
@@ -60,9 +69,20 @@ export default function PlanScreen() {
               <View style={[styles.fill, { width: `${ratio * 100}%` }]} />
             </View>
             <Text style={styles.meta}>{formatMoney(budget.spentMinor)} of {formatMoney(budget.limitMinor)}</Text>
-          </View>
+          </Pressable>
         );
       })}
+
+      <Pressable style={styles.fundLink} onPress={() => router.push('/funds')}>
+        <View style={styles.icon}>
+          <Ionicons name="flag-outline" size={19} color={colors.primary} />
+        </View>
+        <View style={styles.details}>
+          <Text style={styles.name}>Sinking funds</Text>
+          <Text style={styles.meta}>Prepare for larger, non-monthly expenses</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+      </Pressable>
 
       <Pressable style={styles.add} onPress={repeatLatest}>
         <Ionicons name="repeat-outline" size={20} color="#FFFFFF" />
@@ -73,6 +93,7 @@ export default function PlanScreen() {
       {recurring.length ? (
         <View style={styles.list}>
           {recurring.map((item) => {
+            const status = getDueStatus(item.nextDueAt);
             const due = new Intl.DateTimeFormat('en-KE', {
               day: 'numeric',
               month: 'short',
@@ -84,7 +105,9 @@ export default function PlanScreen() {
                 </View>
                 <View style={styles.details}>
                   <Text style={styles.name}>{item.note || item.categoryName}</Text>
-                  <Text style={styles.meta}>{item.accountName} · due {due}</Text>
+                  <Text style={[styles.meta, status === 'overdue' && styles.overdue]}>
+                    {item.accountName} · {status === 'overdue' ? 'overdue' : 'due'} {due}
+                  </Text>
                 </View>
                 <View style={styles.right}>
                   <Text style={styles.amount}>{formatMoney(item.amountMinor)}</Text>
@@ -129,4 +152,8 @@ const styles = StyleSheet.create({
   budgetTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   track: { height: 8, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden', marginVertical: spacing.sm },
   fill: { height: 8, borderRadius: radius.pill, backgroundColor: colors.primary },
+  secondaryAdd: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, borderWidth: 1, borderColor: colors.primary, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md },
+  secondaryAddText: { color: colors.primary, fontSize: 13, fontWeight: '800' },
+  fundLink: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginTop: spacing.xl },
+  overdue: { color: colors.expense, fontWeight: '800' },
 });

@@ -84,3 +84,19 @@ export interface MonthlyBudget {
   id: string; categoryId: string; categoryName: string; categoryIcon: string;
   limitMinor: number; spentMinor: number; month: string;
 }
+
+export interface SinkingFund {
+  id: string;
+  name: string;
+  targetMinor: number;
+  savedMinor: number;
+  targetDate: string | null;
+  color: string;
+}
+
+export interface SinkingFundInput {
+  name: string;
+  targetMinor: number;
+  targetDate?: string;
+  color: string;
+}

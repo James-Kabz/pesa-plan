@@ -12,6 +12,8 @@ import type {
   RecurringInput,
   RecurringTransaction,
   MonthlyBudget,
+  SinkingFund,
+  SinkingFundInput,
 } from '@/domain/types';
 import {
   createTransaction,
@@ -25,7 +27,11 @@ import {
   postRecurring,
   listBudgets,
   saveBudget,
+  deleteBudget,
   saveAccount,
+  listSinkingFunds,
+  createSinkingFund,
+  contributeToFund,
 } from '@/data/repository';
 
 interface FinanceContextValue {
@@ -45,6 +51,10 @@ interface FinanceContextValue {
   recordRecurring: (schedule: RecurringTransaction) => Promise<void>;
   budgets: MonthlyBudget[];
   setBudget: (categoryId: string, limitMinor: number) => Promise<void>;
+  removeBudget: (id: string) => Promise<void>;
+  sinkingFunds: SinkingFund[];
+  addSinkingFund: (input: SinkingFundInput) => Promise<void>;
+  contributeToFund: (id: string, amountMinor: number) => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
@@ -58,10 +68,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [recurring, setRecurring] = useState<RecurringTransaction[]>([]);
   const [budgets, setBudgets] = useState<MonthlyBudget[]>([]);
+  const [sinkingFunds, setSinkingFunds] = useState<SinkingFund[]>([]);
   const monthKey = new Date().toISOString().slice(0, 7);
 
   const refresh = useCallback(async () => {
-    const [nextAccounts, nextCategories, nextTransactions, nextMonthlyTransactions, nextRecurring, nextBudgets] =
+    const [nextAccounts, nextCategories, nextTransactions, nextMonthlyTransactions, nextRecurring, nextBudgets, nextFunds] =
       await Promise.all([
         listAccounts(db),
         listCategories(db),
@@ -69,6 +80,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         listTransactions(db, currentMonthRange()),
         listRecurring(db),
         listBudgets(db, monthKey),
+        listSinkingFunds(db),
       ]);
 
     setAccounts(nextAccounts);
@@ -77,6 +89,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     setMonthlyTransactions(nextMonthlyTransactions);
     setRecurring(nextRecurring);
     setBudgets(nextBudgets);
+    setSinkingFunds(nextFunds);
     setIsLoading(false);
   }, [db, monthKey]);
 
@@ -128,6 +141,21 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     await saveBudget(db, categoryId, monthKey, limitMinor); await refresh();
   }, [db, monthKey, refresh]);
 
+  const removeBudget = useCallback(async (id: string) => {
+    await deleteBudget(db, id);
+    await refresh();
+  }, [db, refresh]);
+
+  const addSinkingFund = useCallback(async (input: SinkingFundInput) => {
+    await createSinkingFund(db, input);
+    await refresh();
+  }, [db, refresh]);
+
+  const addFundContribution = useCallback(async (id: string, amountMinor: number) => {
+    await contributeToFund(db, id, amountMinor);
+    await refresh();
+  }, [db, refresh]);
+
   const monthlySummary = useMemo(
     () => summarizeTransactions(monthlyTransactions),
     [monthlyTransactions],
@@ -151,6 +179,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       recordRecurring,
       budgets,
       setBudget,
+      removeBudget,
+      sinkingFunds,
+      addSinkingFund,
+      contributeToFund: addFundContribution,
     }),
     [
       accounts,
@@ -169,6 +201,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       recordRecurring,
       budgets,
       setBudget,
+      removeBudget,
+      sinkingFunds,
+      addSinkingFund,
+      addFundContribution,
     ],
   );
 

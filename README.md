@@ -14,6 +14,9 @@ Stage 1 is in progress. The app currently includes:
 - income and expense creation, editing, filtering, and deletion;
 - same-currency transfers that remain neutral in cash-flow reports;
 - current-month cash-flow calculations;
+- editable monthly category budgets with actual-spending progress;
+- recurring bill due states and manual posting;
+- sinking funds with contribution progress;
 - dashboard, transaction, plan, debt, and report navigation.
 
 See [ROADMAP.md](./ROADMAP.md) for the durable delivery plan and status.

@@ -21,12 +21,12 @@ Status: **Complete**
 
 ## Stage 2 — Budgets and bills
 
-Status: **Not started**
+Status: **Complete**
 
-- [ ] Monthly category budgets
-- [ ] Budget-versus-actual progress
-- [ ] Recurring bill schedule and reminders
-- [ ] Sinking funds
+- [x] Monthly category budgets
+- [x] Budget-versus-actual progress
+- [x] Recurring bill schedule and in-app due reminders
+- [x] Sinking funds and contributions
 
 ## Stage 3 — Savings and debt
 

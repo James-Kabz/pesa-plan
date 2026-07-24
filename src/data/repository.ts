@@ -9,6 +9,8 @@ import type {
   RecurringInput,
   RecurringTransaction,
   MonthlyBudget,
+  SinkingFund,
+  SinkingFundInput,
   TransactionKind,
   TransactionType,
 } from '@/domain/types';
@@ -316,5 +318,46 @@ export async function saveBudget(db: SQLiteDatabase, categoryId: string, month: 
     `INSERT INTO monthly_budgets (id, category_id, month, limit_minor) VALUES (?, ?, ?, ?)
      ON CONFLICT(category_id, month) DO UPDATE SET limit_minor = excluded.limit_minor`,
     `${categoryId}-${month}`, categoryId, month, limitMinor,
+  );
+}
+
+export async function deleteBudget(db: SQLiteDatabase, id: string): Promise<void> {
+  await db.runAsync('DELETE FROM monthly_budgets WHERE id = ?', id);
+}
+
+export async function listSinkingFunds(db: SQLiteDatabase): Promise<SinkingFund[]> {
+  return db.getAllAsync<SinkingFund>(`
+    SELECT id, name, target_minor AS targetMinor, saved_minor AS savedMinor,
+      target_date AS targetDate, color
+    FROM sinking_funds ORDER BY created_at
+  `);
+}
+
+export async function createSinkingFund(
+  db: SQLiteDatabase,
+  input: SinkingFundInput,
+): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO sinking_funds
+      (id, name, target_minor, saved_minor, target_date, color, created_at)
+     VALUES (?, ?, ?, 0, ?, ?, ?)`,
+    `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    input.name.trim(),
+    input.targetMinor,
+    input.targetDate || null,
+    input.color,
+    new Date().toISOString(),
+  );
+}
+
+export async function contributeToFund(
+  db: SQLiteDatabase,
+  id: string,
+  amountMinor: number,
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE sinking_funds SET saved_minor = saved_minor + ? WHERE id = ?',
+    amountMinor,
+    id,
   );
 }

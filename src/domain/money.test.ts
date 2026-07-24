@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentMonthRange, parseMoneyInput, summarizeTransactions } from './money';
+import { currentMonthRange, getDueStatus, parseMoneyInput, summarizeTransactions } from './money';
 
 describe('parseMoneyInput', () => {
   it('converts decimal input into integer minor units', () => {
@@ -69,5 +69,15 @@ describe('currentMonthRange', () => {
     expect(start.getDate()).toBe(1);
     expect(end.getMonth()).toBe(7);
     expect(end.getDate()).toBe(1);
+  });
+});
+
+describe('getDueStatus', () => {
+  const now = new Date(2026, 6, 24, 12);
+
+  it('classifies overdue, due-soon, and upcoming dates', () => {
+    expect(getDueStatus(new Date(2026, 6, 23).toISOString(), now)).toBe('overdue');
+    expect(getDueStatus(new Date(2026, 6, 29).toISOString(), now)).toBe('due_soon');
+    expect(getDueStatus(new Date(2026, 7, 10).toISOString(), now)).toBe('upcoming');
   });
 });

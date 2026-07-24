@@ -36,6 +36,15 @@ export default function RootLayout() {
               name="transfer/new"
               options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
             />
+            <Stack.Screen
+              name="budget/editor"
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
+            <Stack.Screen name="funds/index" />
+            <Stack.Screen
+              name="fund/editor"
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
           </Stack>
         </FinanceProvider>
       </SQLiteProvider>

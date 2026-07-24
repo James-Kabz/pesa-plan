@@ -42,3 +42,14 @@ export function currentMonthRange(now = new Date()): { start: string; end: strin
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   return { start: start.toISOString(), end: end.toISOString() };
 }
+
+export function getDueStatus(
+  dueAt: string,
+  now = new Date(),
+): 'overdue' | 'due_soon' | 'upcoming' {
+  const due = new Date(dueAt).getTime();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  if (due < today) return 'overdue';
+  if (due - today <= 7 * 24 * 60 * 60 * 1000) return 'due_soon';
+  return 'upcoming';
+}
