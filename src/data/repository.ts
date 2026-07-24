@@ -6,6 +6,8 @@ import type {
   FinanceTransaction,
   NewTransaction,
   NewTransfer,
+  RecurringInput,
+  RecurringTransaction,
   TransactionKind,
   TransactionType,
 } from '@/domain/types';
@@ -249,4 +251,49 @@ export async function createTransfer(
     transfer.occurredAt,
     new Date().toISOString(),
   );
+}
+
+export async function listRecurring(db: SQLiteDatabase): Promise<RecurringTransaction[]> {
+  return db.getAllAsync<RecurringTransaction>(`
+    SELECT r.id, r.account_id AS accountId, a.name AS accountName,
+      r.category_id AS categoryId, c.name AS categoryName, r.type,
+      r.amount_minor AS amountMinor, r.note, r.frequency, r.next_due_at AS nextDueAt,
+      r.active = 1 AS active
+    FROM recurring_transactions r
+    JOIN accounts a ON a.id = r.account_id
+    JOIN categories c ON c.id = r.category_id
+    ORDER BY r.next_due_at
+  `);
+}
+
+export async function createRecurring(db: SQLiteDatabase, input: RecurringInput): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO recurring_transactions
+      (id, account_id, category_id, type, amount_minor, note, frequency, next_due_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`, input.accountId, input.categoryId,
+    input.type, input.amountMinor, input.note?.trim() || null, input.frequency,
+    input.nextDueAt, new Date().toISOString(),
+  );
+}
+
+export async function postRecurring(db: SQLiteDatabase, schedule: RecurringTransaction): Promise<void> {
+  await db.withExclusiveTransactionAsync(async (transaction) => {
+    await transaction.runAsync(
+      `INSERT INTO transactions
+        (id, account_id, category_id, type, amount_minor, note, occurred_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`, schedule.accountId,
+      schedule.categoryId, schedule.type, schedule.amountMinor, schedule.note,
+      new Date().toISOString(), new Date().toISOString(),
+    );
+    const next = new Date(schedule.nextDueAt);
+    schedule.frequency === 'weekly'
+      ? next.setDate(next.getDate() + 7)
+      : next.setMonth(next.getMonth() + 1);
+    await transaction.runAsync(
+      'UPDATE recurring_transactions SET next_due_at = ? WHERE id = ?',
+      next.toISOString(), schedule.id,
+    );
+  });
 }

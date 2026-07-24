@@ -9,14 +9,19 @@ import type {
   MonthlySummary,
   NewTransaction,
   NewTransfer,
+  RecurringInput,
+  RecurringTransaction,
 } from '@/domain/types';
 import {
   createTransaction,
   createTransfer,
+  createRecurring,
   deleteTransaction,
   listAccounts,
   listCategories,
   listTransactions,
+  listRecurring,
+  postRecurring,
   saveAccount,
 } from '@/data/repository';
 
@@ -32,6 +37,9 @@ interface FinanceContextValue {
   saveAccount: (account: AccountInput) => Promise<void>;
   removeTransaction: (id: string) => Promise<void>;
   addTransfer: (transfer: NewTransfer) => Promise<void>;
+  recurring: RecurringTransaction[];
+  addRecurring: (input: RecurringInput) => Promise<void>;
+  recordRecurring: (schedule: RecurringTransaction) => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
@@ -43,20 +51,23 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [monthlyTransactions, setMonthlyTransactions] = useState<FinanceTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [recurring, setRecurring] = useState<RecurringTransaction[]>([]);
 
   const refresh = useCallback(async () => {
-    const [nextAccounts, nextCategories, nextTransactions, nextMonthlyTransactions] =
+    const [nextAccounts, nextCategories, nextTransactions, nextMonthlyTransactions, nextRecurring] =
       await Promise.all([
         listAccounts(db),
         listCategories(db),
         listTransactions(db),
         listTransactions(db, currentMonthRange()),
+        listRecurring(db),
       ]);
 
     setAccounts(nextAccounts);
     setCategories(nextCategories);
     setTransactions(nextTransactions);
     setMonthlyTransactions(nextMonthlyTransactions);
+    setRecurring(nextRecurring);
     setIsLoading(false);
   }, [db]);
 
@@ -96,6 +107,14 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     [db, refresh],
   );
 
+  const addRecurring = useCallback(async (input: RecurringInput) => {
+    await createRecurring(db, input); await refresh();
+  }, [db, refresh]);
+
+  const recordRecurring = useCallback(async (schedule: RecurringTransaction) => {
+    await postRecurring(db, schedule); await refresh();
+  }, [db, refresh]);
+
   const monthlySummary = useMemo(
     () => summarizeTransactions(monthlyTransactions),
     [monthlyTransactions],
@@ -114,6 +133,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       saveAccount: persistAccount,
       removeTransaction,
       addTransfer,
+      recurring,
+      addRecurring,
+      recordRecurring,
     }),
     [
       accounts,
@@ -127,6 +149,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       persistAccount,
       removeTransaction,
       addTransfer,
+      recurring,
+      addRecurring,
+      recordRecurring,
     ],
   );
 

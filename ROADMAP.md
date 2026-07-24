@@ -5,7 +5,7 @@ milestone changes.
 
 ## Stage 1 — Foundation, accounts, and transactions
 
-Status: **In progress**
+Status: **Complete**
 
 - [x] Initialize Expo, React Native, and TypeScript
 - [x] Configure Expo Router
@@ -17,7 +17,7 @@ Status: **In progress**
 - [x] Add account creation and editing
 - [x] Add transaction editing, deletion, search, and filters
 - [x] Add transfers between same-currency accounts
-- [ ] Add recurring transactions
+- [x] Add recurring transactions with deliberate manual posting
 
 ## Stage 2 — Budgets and bills
 

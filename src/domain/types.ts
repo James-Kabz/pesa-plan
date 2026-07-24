@@ -68,3 +68,14 @@ export interface NewTransfer {
   note?: string;
   occurredAt: string;
 }
+
+export interface RecurringTransaction {
+  id: string; accountId: string; accountName: string; categoryId: string; categoryName: string;
+  type: TransactionType; amountMinor: number; note: string | null; frequency: 'weekly' | 'monthly';
+  nextDueAt: string; active: boolean;
+}
+
+export interface RecurringInput {
+  accountId: string; categoryId: string; type: TransactionType; amountMinor: number;
+  note?: string; frequency: 'weekly' | 'monthly'; nextDueAt: string;
+}
