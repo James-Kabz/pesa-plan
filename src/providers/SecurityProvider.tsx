@@ -25,6 +25,9 @@ import { colors, radius, spacing } from '@/theme';
 
 const PIN_KEY = 'pesa-plan-pin-v1';
 const LOCK_DELAY_MS = 2 * 60 * 1000;
+const SCREEN_CAPTURE_KEY = 'pesa-plan-private';
+const SCREEN_CAPTURE_RETRY_MS = 250;
+const SCREEN_CAPTURE_MAX_ATTEMPTS = 5;
 
 interface SecurityContextValue {
   securityAvailable: boolean;
@@ -62,9 +65,48 @@ export function SecurityProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!securityAvailable) return;
-    void ScreenCapture.preventScreenCaptureAsync('pesa-plan-private');
+
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const enableScreenCaptureProtection = async (attempt = 1) => {
+      try {
+        await ScreenCapture.preventScreenCaptureAsync(SCREEN_CAPTURE_KEY);
+        if (cancelled) {
+          await ScreenCapture.allowScreenCaptureAsync(SCREEN_CAPTURE_KEY).catch(() => undefined);
+        }
+      } catch {
+        // Expo records the key before calling Android. Release it after a rejected
+        // call so a foreground retry can reach the native module again.
+        await ScreenCapture.allowScreenCaptureAsync(SCREEN_CAPTURE_KEY).catch(() => undefined);
+        if (
+          !cancelled &&
+          AppState.currentState === 'active' &&
+          attempt < SCREEN_CAPTURE_MAX_ATTEMPTS
+        ) {
+          retryTimer = setTimeout(
+            () => void enableScreenCaptureProtection(attempt + 1),
+            SCREEN_CAPTURE_RETRY_MS,
+          );
+        }
+      }
+    };
+
+    if (AppState.currentState === 'active') {
+      void enableScreenCaptureProtection();
+    }
+
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      if (retryTimer) clearTimeout(retryTimer);
+      void enableScreenCaptureProtection();
+    });
+
     return () => {
-      void ScreenCapture.allowScreenCaptureAsync('pesa-plan-private');
+      cancelled = true;
+      subscription.remove();
+      if (retryTimer) clearTimeout(retryTimer);
+      void ScreenCapture.allowScreenCaptureAsync(SCREEN_CAPTURE_KEY).catch(() => undefined);
     };
   }, [securityAvailable]);
 
