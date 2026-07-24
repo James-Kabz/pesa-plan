@@ -6,7 +6,7 @@ import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function PlanScreen() {
-  const { recurring, transactions, addRecurring, recordRecurring } = useFinance();
+  const { recurring, transactions, addRecurring, recordRecurring, budgets } = useFinance();
   const latest = transactions.find((item) => item.type !== 'transfer');
 
   function repeatLatest() {
@@ -43,6 +43,26 @@ export default function PlanScreen() {
       <Text style={styles.eyebrow}>SPEND WITH INTENTION</Text>
       <Text style={styles.title}>Plan</Text>
       <Text style={styles.subtitle}>Upcoming recurring income and expenses.</Text>
+
+      <Text style={styles.section}>This month’s budgets</Text>
+      {budgets.map((budget) => {
+        const ratio = Math.min(1, budget.spentMinor / budget.limitMinor);
+        const remaining = budget.limitMinor - budget.spentMinor;
+        return (
+          <View key={budget.id} style={styles.budget}>
+            <View style={styles.budgetTop}>
+              <Text style={styles.name}>{budget.categoryName}</Text>
+              <Text style={[styles.amount, remaining < 0 && { color: colors.expense }]}>
+                {formatMoney(Math.abs(remaining))} {remaining < 0 ? 'over' : 'left'}
+              </Text>
+            </View>
+            <View style={styles.track}>
+              <View style={[styles.fill, { width: `${ratio * 100}%` }]} />
+            </View>
+            <Text style={styles.meta}>{formatMoney(budget.spentMinor)} of {formatMoney(budget.limitMinor)}</Text>
+          </View>
+        );
+      })}
 
       <Pressable style={styles.add} onPress={repeatLatest}>
         <Ionicons name="repeat-outline" size={20} color="#FFFFFF" />
@@ -105,4 +125,8 @@ const styles = StyleSheet.create({
   empty: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.xl, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   emptyTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' },
   emptyText: { color: colors.muted, fontSize: 13, textAlign: 'center', marginTop: spacing.sm },
+  budget: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.lg, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
+  budgetTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  track: { height: 8, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden', marginVertical: spacing.sm },
+  fill: { height: 8, borderRadius: radius.pill, backgroundColor: colors.primary },
 });
