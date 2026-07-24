@@ -59,7 +59,7 @@ Status: **Complete**
 
 ## Stage 6 — Testing and release
 
-Status: **Android Version 1 release candidate complete; production artifact in progress**
+Status: **Android Version 1 artifact complete; store publication and iOS remain pending**
 
 - [x] Unit tests for money, backup, and export calculations
 - [x] Executable database migration and integrity tests

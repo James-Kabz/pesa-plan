@@ -34,3 +34,6 @@ collection are not included in Version 1.
   connectivity.
 - Password-encrypted backup restored successfully and persisted through a
   signed-app cold restart.
+- Permission-hardened signed APK verified on a Samsung Galaxy A55.
+- Signed production Android App Bundle generated as Version 1.0.0, version
+  code 3, and validated as an intact release archive.
