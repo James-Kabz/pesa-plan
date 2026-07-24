@@ -57,7 +57,7 @@ export function TransactionRow({
         ]}
       >
         {isTransfer ? '' : isIncome ? '+' : '−'}
-        {formatMoney(transaction.amountMinor)}
+        {formatMoney(transaction.amountMinor, transaction.currency)}
       </Text>
     </Pressable>
   );

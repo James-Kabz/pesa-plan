@@ -39,12 +39,12 @@ Status: **Complete**
 
 ## Stage 4 — Reports and forecasting
 
-Status: **Not started**
+Status: **Complete**
 
-- [ ] Spending trends and category comparisons
-- [ ] Net-worth history
-- [ ] Cash-flow forecast
-- [ ] Savings rate and debt-to-income reporting
+- [x] Spending trends and category comparisons
+- [x] Monthly net-worth snapshots and history
+- [x] 30-day scheduled cash-flow forecast
+- [x] Savings rate and debt-to-income reporting
 
 ## Stage 5 — Privacy, backup, and portability
 

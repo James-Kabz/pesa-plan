@@ -40,6 +40,7 @@ export default function NewTransactionScreen() {
       '',
   );
   const [saving, setSaving] = useState(false);
+  const selectedAccount = accounts.find((account) => account.id === accountId);
 
   function changeType(nextType: TransactionType) {
     setType(nextType);
@@ -111,7 +112,7 @@ export default function NewTransactionScreen() {
 
           <Text style={styles.amountLabel}>Amount</Text>
           <View style={styles.amountRow}>
-            <Text style={styles.currency}>KES</Text>
+            <Text style={styles.currency}>{selectedAccount?.currency ?? 'KES'}</Text>
             <TextInput
               autoFocus
               value={amount}

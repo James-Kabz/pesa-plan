@@ -11,7 +11,9 @@ import { colors, radius, spacing } from '@/theme';
 
 export default function DashboardScreen() {
   const { accounts, monthlySummary, transactions } = useFinance();
-  const totalBalance = accounts.reduce((sum, account) => sum + account.currentBalanceMinor, 0);
+  const totalBalance = accounts
+    .filter((account) => account.currency === 'KES')
+    .reduce((sum, account) => sum + account.currentBalanceMinor, 0);
   const month = new Intl.DateTimeFormat('en-KE', { month: 'long', year: 'numeric' }).format(
     new Date(),
   );
@@ -35,7 +37,7 @@ export default function DashboardScreen() {
         style={styles.balanceCard}
       >
         <View style={styles.balanceTop}>
-          <Text style={styles.balanceLabel}>Total balance</Text>
+          <Text style={styles.balanceLabel}>KES account balance</Text>
           <Text style={styles.month}>{month}</Text>
         </View>
         <Text style={styles.balance}>{formatMoney(totalBalance)}</Text>

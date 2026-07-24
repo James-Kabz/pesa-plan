@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-const DATABASE_VERSION = 6;
+const DATABASE_VERSION = 7;
 
 const categories = [
   ['salary', 'Salary', 'income', 'briefcase-outline', '#2B7A5D'],
@@ -186,6 +186,19 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
       CREATE INDEX debt_payments_debt_idx ON debt_payments(debt_id, paid_at DESC);
     `);
     version = 6;
+  }
+
+  if (version === 6) {
+    await db.execAsync(`
+      CREATE TABLE financial_snapshots (
+        month TEXT PRIMARY KEY NOT NULL,
+        account_balance_minor INTEGER NOT NULL,
+        debt_balance_minor INTEGER NOT NULL,
+        net_worth_minor INTEGER NOT NULL,
+        recorded_at TEXT NOT NULL
+      );
+    `);
+    version = 7;
   }
 
   await db.execAsync(`PRAGMA user_version = ${Math.max(version, DATABASE_VERSION)}`);

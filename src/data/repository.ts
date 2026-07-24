@@ -16,6 +16,9 @@ import type {
   Debt,
   DebtInput,
   DebtPayment,
+  CategorySpend,
+  MonthlyTrend,
+  FinancialSnapshot,
   TransactionKind,
   TransactionType,
 } from '@/domain/types';
@@ -43,6 +46,7 @@ interface TransactionRow {
   note: string | null;
   occurred_at: string;
   created_at: string;
+  currency: string;
 }
 
 export async function listAccounts(db: SQLiteDatabase): Promise<Account[]> {
@@ -107,6 +111,7 @@ export async function listTransactions(
       t.note,
       t.occurred_at,
       t.created_at
+      , a.currency
     FROM transactions t
     JOIN accounts a ON a.id = t.account_id
     JOIN categories c ON c.id = t.category_id
@@ -123,6 +128,7 @@ export async function listTransactions(
       tr.note,
       tr.occurred_at,
       tr.created_at
+      , source.currency
     FROM transfers tr
     JOIN accounts source ON source.id = tr.from_account_id
     JOIN accounts destination ON destination.id = tr.to_account_id
@@ -151,6 +157,7 @@ export async function listTransactions(
     note: row.note,
     occurredAt: row.occurred_at,
     createdAt: row.created_at,
+    currency: row.currency,
   }));
 }
 
@@ -266,7 +273,7 @@ export async function listRecurring(db: SQLiteDatabase): Promise<RecurringTransa
     SELECT r.id, r.account_id AS accountId, a.name AS accountName,
       r.category_id AS categoryId, c.name AS categoryName, r.type,
       r.amount_minor AS amountMinor, r.note, r.frequency, r.next_due_at AS nextDueAt,
-      r.active = 1 AS active
+      r.active = 1 AS active, a.currency AS accountCurrency
     FROM recurring_transactions r
     JOIN accounts a ON a.id = r.account_id
     JOIN categories c ON c.id = r.category_id
@@ -314,6 +321,7 @@ export async function listBudgets(db: SQLiteDatabase, month: string): Promise<Mo
     FROM monthly_budgets b JOIN categories c ON c.id = b.category_id
     LEFT JOIN transactions t ON t.category_id = b.category_id AND t.type = 'expense'
       AND substr(t.occurred_at, 1, 7) = b.month
+      AND t.account_id IN (SELECT id FROM accounts WHERE currency = 'KES')
     WHERE b.month = ? GROUP BY b.id ORDER BY c.name
   `, month);
 }
@@ -481,5 +489,66 @@ export async function listAllDebtPayments(db: SQLiteDatabase): Promise<DebtPayme
       p.amount_minor AS amountMinor, p.paid_at AS paidAt, p.note
     FROM debt_payments p JOIN debts d ON d.id = p.debt_id
     ORDER BY p.paid_at DESC LIMIT 20
+  `);
+}
+
+export async function listCategorySpending(
+  db: SQLiteDatabase,
+  month: string,
+): Promise<CategorySpend[]> {
+  return db.getAllAsync<CategorySpend>(
+    `SELECT c.id AS categoryId, c.name AS categoryName, c.icon AS categoryIcon,
+      SUM(t.amount_minor) AS amountMinor
+     FROM transactions t JOIN categories c ON c.id = t.category_id
+     JOIN accounts a ON a.id = t.account_id
+     WHERE t.type = 'expense' AND a.currency = 'KES' AND substr(t.occurred_at, 1, 7) = ?
+     GROUP BY c.id ORDER BY amountMinor DESC`,
+    month,
+  );
+}
+
+export async function listMonthlyTrends(db: SQLiteDatabase): Promise<MonthlyTrend[]> {
+  return db.getAllAsync<MonthlyTrend>(`
+    SELECT substr(occurred_at, 1, 7) AS month,
+      SUM(CASE WHEN type = 'income' THEN amount_minor ELSE 0 END) AS incomeMinor,
+      SUM(CASE WHEN type = 'expense' THEN amount_minor ELSE 0 END) AS expenseMinor
+    FROM transactions t JOIN accounts a ON a.id = t.account_id
+    WHERE a.currency = 'KES'
+    GROUP BY substr(occurred_at, 1, 7)
+    ORDER BY month DESC LIMIT 6
+  `);
+}
+
+export async function recordFinancialSnapshot(
+  db: SQLiteDatabase,
+  month: string,
+  accountBalanceMinor: number,
+  debtBalanceMinor: number,
+): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO financial_snapshots
+      (month, account_balance_minor, debt_balance_minor, net_worth_minor, recorded_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(month) DO UPDATE SET
+       account_balance_minor = excluded.account_balance_minor,
+       debt_balance_minor = excluded.debt_balance_minor,
+       net_worth_minor = excluded.net_worth_minor,
+       recorded_at = excluded.recorded_at`,
+    month,
+    accountBalanceMinor,
+    debtBalanceMinor,
+    accountBalanceMinor - debtBalanceMinor,
+    new Date().toISOString(),
+  );
+}
+
+export async function listFinancialSnapshots(
+  db: SQLiteDatabase,
+): Promise<FinancialSnapshot[]> {
+  return db.getAllAsync<FinancialSnapshot>(`
+    SELECT month, net_worth_minor AS netWorthMinor,
+      account_balance_minor AS accountBalanceMinor,
+      debt_balance_minor AS debtBalanceMinor
+    FROM financial_snapshots ORDER BY month
   `);
 }

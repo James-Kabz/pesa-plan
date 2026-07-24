@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
-import { currentMonthRange, summarizeTransactions } from '@/domain/money';
+import { currentMonthRange, forecastRecurringNet, summarizeTransactions } from '@/domain/money';
 import type {
   Account,
   AccountInput,
@@ -19,6 +19,9 @@ import type {
   Debt,
   DebtInput,
   DebtPayment,
+  CategorySpend,
+  MonthlyTrend,
+  FinancialSnapshot,
 } from '@/domain/types';
 import {
   createTransaction,
@@ -44,6 +47,10 @@ import {
   createDebt,
   recordDebtPayment,
   listAllDebtPayments,
+  listCategorySpending,
+  listMonthlyTrends,
+  recordFinancialSnapshot,
+  listFinancialSnapshots,
 } from '@/data/repository';
 
 interface FinanceContextValue {
@@ -74,6 +81,10 @@ interface FinanceContextValue {
   addDebt: (input: DebtInput) => Promise<void>;
   payDebt: (id: string, amountMinor: number, note?: string) => Promise<void>;
   debtPayments: DebtPayment[];
+  categorySpending: CategorySpend[];
+  monthlyTrends: MonthlyTrend[];
+  financialSnapshots: FinancialSnapshot[];
+  forecast30DayNetMinor: number;
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
@@ -91,6 +102,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [debtPayments, setDebtPayments] = useState<DebtPayment[]>([]);
+  const [categorySpending, setCategorySpending] = useState<CategorySpend[]>([]);
+  const [monthlyTrends, setMonthlyTrends] = useState<MonthlyTrend[]>([]);
+  const [financialSnapshots, setFinancialSnapshots] = useState<FinancialSnapshot[]>([]);
   const monthKey = new Date().toISOString().slice(0, 7);
 
   const refresh = useCallback(async () => {
@@ -118,6 +132,19 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     setSavingsGoals(nextGoals);
     setDebts(nextDebts);
     setDebtPayments(nextDebtPayments);
+    const kesAccounts = nextAccounts
+      .filter((account) => account.currency === 'KES')
+      .reduce((sum, account) => sum + account.currentBalanceMinor, 0);
+    const debtBalance = nextDebts.reduce((sum, debt) => sum + debt.balanceMinor, 0);
+    await recordFinancialSnapshot(db, monthKey, kesAccounts, debtBalance);
+    const [nextCategorySpending, nextMonthlyTrends, nextSnapshots] = await Promise.all([
+      listCategorySpending(db, monthKey),
+      listMonthlyTrends(db),
+      listFinancialSnapshots(db),
+    ]);
+    setCategorySpending(nextCategorySpending);
+    setMonthlyTrends(nextMonthlyTrends);
+    setFinancialSnapshots(nextSnapshots);
     setIsLoading(false);
   }, [db, monthKey]);
 
@@ -205,8 +232,13 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   }, [db, refresh]);
 
   const monthlySummary = useMemo(
-    () => summarizeTransactions(monthlyTransactions),
+    () => summarizeTransactions(monthlyTransactions.filter((item) => item.currency === 'KES')),
     [monthlyTransactions],
+  );
+
+  const forecast30DayNetMinor = useMemo(
+    () => forecastRecurringNet(recurring),
+    [recurring],
   );
 
   const value = useMemo(
@@ -238,6 +270,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       addDebt,
       payDebt,
       debtPayments,
+      categorySpending,
+      monthlyTrends,
+      financialSnapshots,
+      forecast30DayNetMinor,
     }),
     [
       accounts,
@@ -267,6 +303,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       addDebt,
       payDebt,
       debtPayments,
+      categorySpending,
+      monthlyTrends,
+      financialSnapshots,
+      forecast30DayNetMinor,
     ],
   );
 

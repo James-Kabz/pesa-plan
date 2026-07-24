@@ -3,6 +3,8 @@ import {
   currentMonthRange,
   emergencyFundMonths,
   estimatePayoffMonths,
+  debtToIncomeRatio,
+  forecastRecurringNet,
   getDueStatus,
   orderDebts,
   parseMoneyInput,
@@ -119,5 +121,17 @@ describe('debt and emergency calculations', () => {
     expect(estimatePayoffMonths(120_000, 0, 10_000)).toBe(12);
     expect(estimatePayoffMonths(100_000, 2400, 1_000)).toBeNull();
     expect(estimatePayoffMonths(0, 2400, 1_000)).toBe(0);
+  });
+
+  it('calculates debt-to-income and a currency-safe recurring forecast', () => {
+    expect(debtToIncomeRatio(30_000, 100_000)).toBe(30);
+    expect(debtToIncomeRatio(30_000, 0)).toBe(0);
+    const now = new Date(2026, 6, 24);
+    const schedules = [
+      { type: 'income', amountMinor: 100_000, nextDueAt: new Date(2026, 6, 30).toISOString(), active: true, accountCurrency: 'KES' },
+      { type: 'expense', amountMinor: 25_000, nextDueAt: new Date(2026, 7, 1).toISOString(), active: true, accountCurrency: 'KES' },
+      { type: 'expense', amountMinor: 50_000, nextDueAt: new Date(2026, 7, 1).toISOString(), active: true, accountCurrency: 'USD' },
+    ] as import('./types').RecurringTransaction[];
+    expect(forecastRecurringNet(schedules, 30, now)).toBe(75_000);
   });
 });

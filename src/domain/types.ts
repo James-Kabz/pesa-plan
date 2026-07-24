@@ -33,6 +33,7 @@ export interface FinanceTransaction {
   note: string | null;
   occurredAt: string;
   createdAt: string;
+  currency: string;
 }
 
 export interface MonthlySummary {
@@ -73,6 +74,7 @@ export interface RecurringTransaction {
   id: string; accountId: string; accountName: string; categoryId: string; categoryName: string;
   type: TransactionType; amountMinor: number; note: string | null; frequency: 'weekly' | 'monthly';
   nextDueAt: string; active: boolean;
+  accountCurrency: string;
 }
 
 export interface RecurringInput {
@@ -146,4 +148,24 @@ export interface DebtPayment {
   paidAt: string;
   note: string | null;
   debtName?: string;
+}
+
+export interface CategorySpend {
+  categoryId: string;
+  categoryName: string;
+  categoryIcon: string;
+  amountMinor: number;
+}
+
+export interface MonthlyTrend {
+  month: string;
+  incomeMinor: number;
+  expenseMinor: number;
+}
+
+export interface FinancialSnapshot {
+  month: string;
+  netWorthMinor: number;
+  accountBalanceMinor: number;
+  debtBalanceMinor: number;
 }

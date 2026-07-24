@@ -1,4 +1,4 @@
-import type { Debt, FinanceTransaction, MonthlySummary } from './types';
+import type { Debt, FinanceTransaction, MonthlySummary, RecurringTransaction } from './types';
 
 export function formatMoney(
   amountMinor: number,
@@ -87,4 +87,29 @@ export function estimatePayoffMonths(
     -Math.log(1 - (monthlyRate * balanceMinor) / monthlyPaymentMinor) /
     Math.log(1 + monthlyRate);
   return Math.ceil(months);
+}
+
+export function debtToIncomeRatio(
+  monthlyDebtPaymentsMinor: number,
+  monthlyIncomeMinor: number,
+): number {
+  return monthlyIncomeMinor <= 0 ? 0 : (monthlyDebtPaymentsMinor / monthlyIncomeMinor) * 100;
+}
+
+export function forecastRecurringNet(
+  schedules: RecurringTransaction[],
+  days = 30,
+  now = new Date(),
+  currency = 'KES',
+): number {
+  const limit = now.getTime() + days * 24 * 60 * 60 * 1000;
+  return schedules
+    .filter((item) => {
+      const due = new Date(item.nextDueAt).getTime();
+      return item.active && item.accountCurrency === currency && due >= now.getTime() && due <= limit;
+    })
+    .reduce(
+      (total, item) => total + (item.type === 'income' ? item.amountMinor : -item.amountMinor),
+      0,
+    );
 }
