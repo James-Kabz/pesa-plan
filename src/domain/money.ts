@@ -1,4 +1,4 @@
-import type { FinanceTransaction, MonthlySummary } from './types';
+import type { Debt, FinanceTransaction, MonthlySummary } from './types';
 
 export function formatMoney(
   amountMinor: number,
@@ -52,4 +52,39 @@ export function getDueStatus(
   if (due < today) return 'overdue';
   if (due - today <= 7 * 24 * 60 * 60 * 1000) return 'due_soon';
   return 'upcoming';
+}
+
+export function orderDebts(
+  debts: Debt[],
+  strategy: 'snowball' | 'avalanche',
+): Debt[] {
+  return [...debts].sort((a, b) =>
+    strategy === 'snowball'
+      ? a.balanceMinor - b.balanceMinor || b.aprBasisPoints - a.aprBasisPoints
+      : b.aprBasisPoints - a.aprBasisPoints || a.balanceMinor - b.balanceMinor,
+  );
+}
+
+export function emergencyFundMonths(
+  emergencySavingsMinor: number,
+  monthlyEssentialExpensesMinor: number,
+): number {
+  if (monthlyEssentialExpensesMinor <= 0) return 0;
+  return emergencySavingsMinor / monthlyEssentialExpensesMinor;
+}
+
+export function estimatePayoffMonths(
+  balanceMinor: number,
+  aprBasisPoints: number,
+  monthlyPaymentMinor: number,
+): number | null {
+  if (balanceMinor <= 0) return 0;
+  if (monthlyPaymentMinor <= 0) return null;
+  const monthlyRate = aprBasisPoints / 10_000 / 12;
+  if (monthlyRate === 0) return Math.ceil(balanceMinor / monthlyPaymentMinor);
+  if (monthlyPaymentMinor <= balanceMinor * monthlyRate) return null;
+  const months =
+    -Math.log(1 - (monthlyRate * balanceMinor) / monthlyPaymentMinor) /
+    Math.log(1 + monthlyRate);
+  return Math.ceil(months);
 }

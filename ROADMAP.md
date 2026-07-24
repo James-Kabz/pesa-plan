@@ -30,12 +30,12 @@ Status: **Complete**
 
 ## Stage 3 — Savings and debt
 
-Status: **Not started**
+Status: **Complete**
 
-- [ ] Savings goals and contributions
-- [ ] Debt accounts and payment history
-- [ ] Snowball and avalanche payoff projections
-- [ ] Emergency-fund coverage
+- [x] Savings goals and contributions
+- [x] Debt accounts and payment history
+- [x] Snowball and avalanche priorities with payoff estimates
+- [x] Emergency-fund coverage estimate
 
 ## Stage 4 — Reports and forecasting
 

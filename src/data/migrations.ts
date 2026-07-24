@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-const DATABASE_VERSION = 5;
+const DATABASE_VERSION = 6;
 
 const categories = [
   ['salary', 'Salary', 'income', 'briefcase-outline', '#2B7A5D'],
@@ -148,6 +148,44 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
       );
     `);
     version = 5;
+  }
+
+  if (version === 5) {
+    await db.execAsync(`
+      CREATE TABLE savings_goals (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        target_minor INTEGER NOT NULL CHECK (target_minor > 0),
+        saved_minor INTEGER NOT NULL DEFAULT 0 CHECK (saved_minor >= 0),
+        goal_type TEXT NOT NULL CHECK (goal_type IN ('general', 'emergency')),
+        target_date TEXT,
+        color TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE debts (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        creditor TEXT,
+        original_balance_minor INTEGER NOT NULL CHECK (original_balance_minor > 0),
+        balance_minor INTEGER NOT NULL CHECK (balance_minor >= 0),
+        apr_basis_points INTEGER NOT NULL CHECK (apr_basis_points >= 0),
+        minimum_payment_minor INTEGER NOT NULL CHECK (minimum_payment_minor >= 0),
+        due_day INTEGER CHECK (due_day BETWEEN 1 AND 31),
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE debt_payments (
+        id TEXT PRIMARY KEY NOT NULL,
+        debt_id TEXT NOT NULL REFERENCES debts(id) ON DELETE CASCADE,
+        amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
+        paid_at TEXT NOT NULL,
+        note TEXT,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX debt_payments_debt_idx ON debt_payments(debt_id, paid_at DESC);
+    `);
+    version = 6;
   }
 
   await db.execAsync(`PRAGMA user_version = ${Math.max(version, DATABASE_VERSION)}`);

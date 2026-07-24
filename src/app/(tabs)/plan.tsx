@@ -83,6 +83,16 @@ export default function PlanScreen() {
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.muted} />
       </Pressable>
+      <Pressable style={styles.goalLink} onPress={() => router.push('/goals')}>
+        <View style={styles.icon}>
+          <Ionicons name="sparkles-outline" size={19} color={colors.primary} />
+        </View>
+        <View style={styles.details}>
+          <Text style={styles.name}>Savings goals</Text>
+          <Text style={styles.meta}>Build an emergency fund or another target</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+      </Pressable>
 
       <Pressable style={styles.add} onPress={repeatLatest}>
         <Ionicons name="repeat-outline" size={20} color="#FFFFFF" />
@@ -155,5 +165,6 @@ const styles = StyleSheet.create({
   secondaryAdd: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, borderWidth: 1, borderColor: colors.primary, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md },
   secondaryAddText: { color: colors.primary, fontSize: 13, fontWeight: '800' },
   fundLink: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginTop: spacing.xl },
+  goalLink: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginTop: spacing.sm },
   overdue: { color: colors.expense, fontWeight: '800' },
 });

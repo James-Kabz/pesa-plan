@@ -11,6 +11,11 @@ import type {
   MonthlyBudget,
   SinkingFund,
   SinkingFundInput,
+  SavingsGoal,
+  SavingsGoalInput,
+  Debt,
+  DebtInput,
+  DebtPayment,
   TransactionKind,
   TransactionType,
 } from '@/domain/types';
@@ -360,4 +365,121 @@ export async function contributeToFund(
     amountMinor,
     id,
   );
+}
+
+export async function listSavingsGoals(db: SQLiteDatabase): Promise<SavingsGoal[]> {
+  return db.getAllAsync<SavingsGoal>(`
+    SELECT id, name, target_minor AS targetMinor, saved_minor AS savedMinor,
+      goal_type AS goalType, target_date AS targetDate, color
+    FROM savings_goals ORDER BY created_at
+  `);
+}
+
+export async function createSavingsGoal(
+  db: SQLiteDatabase,
+  input: SavingsGoalInput,
+): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO savings_goals
+      (id, name, target_minor, saved_minor, goal_type, target_date, color, created_at)
+     VALUES (?, ?, ?, 0, ?, ?, ?, ?)`,
+    `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    input.name.trim(),
+    input.targetMinor,
+    input.goalType,
+    input.targetDate || null,
+    input.color,
+    new Date().toISOString(),
+  );
+}
+
+export async function contributeToSavingsGoal(
+  db: SQLiteDatabase,
+  id: string,
+  amountMinor: number,
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE savings_goals SET saved_minor = saved_minor + ? WHERE id = ?',
+    amountMinor,
+    id,
+  );
+}
+
+export async function listDebts(db: SQLiteDatabase): Promise<Debt[]> {
+  return db.getAllAsync<Debt>(`
+    SELECT id, name, creditor, original_balance_minor AS originalBalanceMinor,
+      balance_minor AS balanceMinor, apr_basis_points AS aprBasisPoints,
+      minimum_payment_minor AS minimumPaymentMinor, due_day AS dueDay
+    FROM debts WHERE balance_minor > 0 ORDER BY created_at
+  `);
+}
+
+export async function createDebt(db: SQLiteDatabase, input: DebtInput): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO debts
+      (id, name, creditor, original_balance_minor, balance_minor, apr_basis_points,
+       minimum_payment_minor, due_day, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    input.name.trim(),
+    input.creditor?.trim() || null,
+    input.balanceMinor,
+    input.balanceMinor,
+    input.aprBasisPoints,
+    input.minimumPaymentMinor,
+    input.dueDay ?? null,
+    new Date().toISOString(),
+  );
+}
+
+export async function recordDebtPayment(
+  db: SQLiteDatabase,
+  debtId: string,
+  amountMinor: number,
+  note?: string,
+): Promise<void> {
+  await db.withExclusiveTransactionAsync(async (transaction) => {
+    const debt = await transaction.getFirstAsync<{ balance_minor: number }>(
+      'SELECT balance_minor FROM debts WHERE id = ?',
+      debtId,
+    );
+    if (!debt) throw new Error('Debt not found');
+    const applied = Math.min(amountMinor, debt.balance_minor);
+    await transaction.runAsync(
+      `INSERT INTO debt_payments (id, debt_id, amount_minor, paid_at, note, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+      debtId,
+      applied,
+      new Date().toISOString(),
+      note?.trim() || null,
+      new Date().toISOString(),
+    );
+    await transaction.runAsync(
+      'UPDATE debts SET balance_minor = balance_minor - ? WHERE id = ?',
+      applied,
+      debtId,
+    );
+  });
+}
+
+export async function listDebtPayments(
+  db: SQLiteDatabase,
+  debtId: string,
+): Promise<DebtPayment[]> {
+  return db.getAllAsync<DebtPayment>(
+    `SELECT id, debt_id AS debtId, amount_minor AS amountMinor,
+      paid_at AS paidAt, note
+     FROM debt_payments WHERE debt_id = ? ORDER BY paid_at DESC`,
+    debtId,
+  );
+}
+
+export async function listAllDebtPayments(db: SQLiteDatabase): Promise<DebtPayment[]> {
+  return db.getAllAsync<DebtPayment>(`
+    SELECT p.id, p.debt_id AS debtId, d.name AS debtName,
+      p.amount_minor AS amountMinor, p.paid_at AS paidAt, p.note
+    FROM debt_payments p JOIN debts d ON d.id = p.debt_id
+    ORDER BY p.paid_at DESC LIMIT 20
+  `);
 }

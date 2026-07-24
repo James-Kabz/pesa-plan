@@ -14,6 +14,11 @@ import type {
   MonthlyBudget,
   SinkingFund,
   SinkingFundInput,
+  SavingsGoal,
+  SavingsGoalInput,
+  Debt,
+  DebtInput,
+  DebtPayment,
 } from '@/domain/types';
 import {
   createTransaction,
@@ -32,6 +37,13 @@ import {
   listSinkingFunds,
   createSinkingFund,
   contributeToFund,
+  listSavingsGoals,
+  createSavingsGoal,
+  contributeToSavingsGoal,
+  listDebts,
+  createDebt,
+  recordDebtPayment,
+  listAllDebtPayments,
 } from '@/data/repository';
 
 interface FinanceContextValue {
@@ -55,6 +67,13 @@ interface FinanceContextValue {
   sinkingFunds: SinkingFund[];
   addSinkingFund: (input: SinkingFundInput) => Promise<void>;
   contributeToFund: (id: string, amountMinor: number) => Promise<void>;
+  savingsGoals: SavingsGoal[];
+  addSavingsGoal: (input: SavingsGoalInput) => Promise<void>;
+  contributeToSavingsGoal: (id: string, amountMinor: number) => Promise<void>;
+  debts: Debt[];
+  addDebt: (input: DebtInput) => Promise<void>;
+  payDebt: (id: string, amountMinor: number, note?: string) => Promise<void>;
+  debtPayments: DebtPayment[];
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
@@ -69,10 +88,13 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [recurring, setRecurring] = useState<RecurringTransaction[]>([]);
   const [budgets, setBudgets] = useState<MonthlyBudget[]>([]);
   const [sinkingFunds, setSinkingFunds] = useState<SinkingFund[]>([]);
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
+  const [debts, setDebts] = useState<Debt[]>([]);
+  const [debtPayments, setDebtPayments] = useState<DebtPayment[]>([]);
   const monthKey = new Date().toISOString().slice(0, 7);
 
   const refresh = useCallback(async () => {
-    const [nextAccounts, nextCategories, nextTransactions, nextMonthlyTransactions, nextRecurring, nextBudgets, nextFunds] =
+    const [nextAccounts, nextCategories, nextTransactions, nextMonthlyTransactions, nextRecurring, nextBudgets, nextFunds, nextGoals, nextDebts, nextDebtPayments] =
       await Promise.all([
         listAccounts(db),
         listCategories(db),
@@ -81,6 +103,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         listRecurring(db),
         listBudgets(db, monthKey),
         listSinkingFunds(db),
+        listSavingsGoals(db),
+        listDebts(db),
+        listAllDebtPayments(db),
       ]);
 
     setAccounts(nextAccounts);
@@ -90,6 +115,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     setRecurring(nextRecurring);
     setBudgets(nextBudgets);
     setSinkingFunds(nextFunds);
+    setSavingsGoals(nextGoals);
+    setDebts(nextDebts);
+    setDebtPayments(nextDebtPayments);
     setIsLoading(false);
   }, [db, monthKey]);
 
@@ -156,6 +184,26 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     await refresh();
   }, [db, refresh]);
 
+  const addSavingsGoal = useCallback(async (input: SavingsGoalInput) => {
+    await createSavingsGoal(db, input);
+    await refresh();
+  }, [db, refresh]);
+
+  const addSavingsContribution = useCallback(async (id: string, amountMinor: number) => {
+    await contributeToSavingsGoal(db, id, amountMinor);
+    await refresh();
+  }, [db, refresh]);
+
+  const addDebt = useCallback(async (input: DebtInput) => {
+    await createDebt(db, input);
+    await refresh();
+  }, [db, refresh]);
+
+  const payDebt = useCallback(async (id: string, amountMinor: number, note?: string) => {
+    await recordDebtPayment(db, id, amountMinor, note);
+    await refresh();
+  }, [db, refresh]);
+
   const monthlySummary = useMemo(
     () => summarizeTransactions(monthlyTransactions),
     [monthlyTransactions],
@@ -183,6 +231,13 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       sinkingFunds,
       addSinkingFund,
       contributeToFund: addFundContribution,
+      savingsGoals,
+      addSavingsGoal,
+      contributeToSavingsGoal: addSavingsContribution,
+      debts,
+      addDebt,
+      payDebt,
+      debtPayments,
     }),
     [
       accounts,
@@ -205,6 +260,13 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       sinkingFunds,
       addSinkingFund,
       addFundContribution,
+      savingsGoals,
+      addSavingsGoal,
+      addSavingsContribution,
+      debts,
+      addDebt,
+      payDebt,
+      debtPayments,
     ],
   );
 

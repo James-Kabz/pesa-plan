@@ -100,3 +100,50 @@ export interface SinkingFundInput {
   targetDate?: string;
   color: string;
 }
+
+export interface SavingsGoal {
+  id: string;
+  name: string;
+  targetMinor: number;
+  savedMinor: number;
+  goalType: 'general' | 'emergency';
+  targetDate: string | null;
+  color: string;
+}
+
+export interface SavingsGoalInput {
+  name: string;
+  targetMinor: number;
+  goalType: 'general' | 'emergency';
+  targetDate?: string;
+  color: string;
+}
+
+export interface Debt {
+  id: string;
+  name: string;
+  creditor: string | null;
+  originalBalanceMinor: number;
+  balanceMinor: number;
+  aprBasisPoints: number;
+  minimumPaymentMinor: number;
+  dueDay: number | null;
+}
+
+export interface DebtInput {
+  name: string;
+  creditor?: string;
+  balanceMinor: number;
+  aprBasisPoints: number;
+  minimumPaymentMinor: number;
+  dueDay?: number;
+}
+
+export interface DebtPayment {
+  id: string;
+  debtId: string;
+  amountMinor: number;
+  paidAt: string;
+  note: string | null;
+  debtName?: string;
+}

@@ -17,6 +17,8 @@ Stage 1 is in progress. The app currently includes:
 - editable monthly category budgets with actual-spending progress;
 - recurring bill due states and manual posting;
 - sinking funds with contribution progress;
+- savings goals and emergency-fund coverage;
+- debt balances, payment history, payoff estimates, and snowball/avalanche priorities;
 - dashboard, transaction, plan, debt, and report navigation.
 
 See [ROADMAP.md](./ROADMAP.md) for the durable delivery plan and status.

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { currentMonthRange, getDueStatus, parseMoneyInput, summarizeTransactions } from './money';
+import {
+  currentMonthRange,
+  emergencyFundMonths,
+  estimatePayoffMonths,
+  getDueStatus,
+  orderDebts,
+  parseMoneyInput,
+  summarizeTransactions,
+} from './money';
 
 describe('parseMoneyInput', () => {
   it('converts decimal input into integer minor units', () => {
@@ -79,5 +87,37 @@ describe('getDueStatus', () => {
     expect(getDueStatus(new Date(2026, 6, 23).toISOString(), now)).toBe('overdue');
     expect(getDueStatus(new Date(2026, 6, 29).toISOString(), now)).toBe('due_soon');
     expect(getDueStatus(new Date(2026, 7, 10).toISOString(), now)).toBe('upcoming');
+  });
+});
+
+describe('debt and emergency calculations', () => {
+  const debts = [
+    { id: 'large', balanceMinor: 500_000, aprBasisPoints: 2400 },
+    { id: 'small', balanceMinor: 100_000, aprBasisPoints: 1200 },
+    { id: 'high-apr', balanceMinor: 300_000, aprBasisPoints: 3000 },
+  ] as import('./types').Debt[];
+
+  it('orders debts by snowball and avalanche priorities', () => {
+    expect(orderDebts(debts, 'snowball').map((debt) => debt.id)).toEqual([
+      'small',
+      'high-apr',
+      'large',
+    ]);
+    expect(orderDebts(debts, 'avalanche').map((debt) => debt.id)).toEqual([
+      'high-apr',
+      'large',
+      'small',
+    ]);
+  });
+
+  it('calculates emergency coverage in months', () => {
+    expect(emergencyFundMonths(300_000, 100_000)).toBe(3);
+    expect(emergencyFundMonths(300_000, 0)).toBe(0);
+  });
+
+  it('estimates payoff months and detects negative amortization', () => {
+    expect(estimatePayoffMonths(120_000, 0, 10_000)).toBe(12);
+    expect(estimatePayoffMonths(100_000, 2400, 1_000)).toBeNull();
+    expect(estimatePayoffMonths(0, 2400, 1_000)).toBe(0);
   });
 });

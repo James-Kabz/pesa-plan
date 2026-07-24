@@ -45,6 +45,15 @@ export default function RootLayout() {
               name="fund/editor"
               options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
             />
+            <Stack.Screen name="goals/index" />
+            <Stack.Screen
+              name="goal/editor"
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
+            <Stack.Screen
+              name="debt/editor"
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
           </Stack>
         </FinanceProvider>
       </SQLiteProvider>
