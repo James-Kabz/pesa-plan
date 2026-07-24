@@ -44,6 +44,8 @@ export default function TransactionsScreen() {
           <Text style={styles.title}>Activity</Text>
         </View>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add transaction"
           style={styles.add}
           onPress={() => router.push({ pathname: '/transaction/new', params: { type: 'expense' } })}
         >
@@ -61,7 +63,7 @@ export default function TransactionsScreen() {
           style={styles.searchInput}
         />
         {query ? (
-          <Pressable onPress={() => setQuery('')}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => setQuery('')}>
             <Ionicons name="close-circle" size={19} color={colors.muted} />
           </Pressable>
         ) : null}

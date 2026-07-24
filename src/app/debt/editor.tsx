@@ -51,7 +51,7 @@ export default function DebtEditorScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Pressable style={styles.headerButton} onPress={() => router.back()}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close debt editor" style={styles.headerButton} onPress={() => router.back()}>
           <Ionicons name="close" size={22} color={colors.ink} />
         </Pressable>
         <Text style={styles.headerTitle}>{debt ? `Pay ${debt.name}` : 'Add debt'}</Text>

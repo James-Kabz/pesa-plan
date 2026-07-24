@@ -31,7 +31,10 @@
     "react-native-web": "^0.21.2"
   },
   "devDependencies": {
+    "@types/node": "^26.1.1",
     "@types/react": "~19.2.2",
+    "@types/sql.js": "^1.4.11",
+    "sql.js": "^1.14.1",
     "typescript": "~6.0.3",
     "vitest": "^4.1.10"
   },
@@ -42,7 +45,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "npm run typecheck && npm test && npx expo-doctor"
+    "check": "npm run typecheck && npm test && npx expo-doctor",
+    "release:check": "npm run check && npx expo export --platform android --output-dir work/release-android"
   },
   "private": true
 }

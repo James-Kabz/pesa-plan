@@ -16,11 +16,11 @@ export default function GoalsScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Pressable style={styles.headerButton} onPress={() => router.back()}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Go back" style={styles.headerButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color={colors.ink} />
         </Pressable>
         <Text style={styles.headerTitle}>Savings goals</Text>
-        <Pressable style={styles.headerButton} onPress={() => router.push('/goal/editor')}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Add savings goal" style={styles.headerButton} onPress={() => router.push('/goal/editor')}>
           <Ionicons name="add" size={24} color={colors.primary} />
         </Pressable>
       </View>

@@ -15,11 +15,11 @@ export default function AccountsScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Pressable style={styles.headerButton} onPress={() => router.back()}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Go back" style={styles.headerButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color={colors.ink} />
         </Pressable>
         <Text style={styles.headerTitle}>Accounts</Text>
-        <Pressable style={styles.headerButton} onPress={() => router.push('/account/editor')}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Add account" style={styles.headerButton} onPress={() => router.push('/account/editor')}>
           <Ionicons name="add" size={24} color={colors.primary} />
         </Pressable>
       </View>

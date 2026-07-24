@@ -81,7 +81,7 @@ export default function AccountEditorScreen() {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
-          <Pressable style={styles.headerButton} onPress={() => router.back()}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close account editor" style={styles.headerButton} onPress={() => router.back()}>
             <Ionicons name="close" size={22} color={colors.ink} />
           </Pressable>
           <Text style={styles.headerTitle}>{existing ? 'Edit account' : 'New account'}</Text>
@@ -149,6 +149,9 @@ export default function AccountEditorScreen() {
           <View style={styles.swatches}>
             {swatches.map((swatch) => (
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Choose color ${swatch}`}
+                accessibilityState={{ selected: color === swatch }}
                 key={swatch}
                 onPress={() => setColor(swatch)}
                 style={[styles.swatch, { backgroundColor: swatch }, color === swatch && styles.swatchSelected]}

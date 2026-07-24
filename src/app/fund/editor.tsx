@@ -38,7 +38,7 @@ export default function FundEditorScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Pressable style={styles.headerButton} onPress={() => router.back()}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close sinking fund editor" style={styles.headerButton} onPress={() => router.back()}>
           <Ionicons name="close" size={22} color={colors.ink} />
         </Pressable>
         <Text style={styles.headerTitle}>{fund ? `Add to ${fund.name}` : 'New sinking fund'}</Text>
@@ -61,7 +61,7 @@ export default function FundEditorScreen() {
             <Text style={styles.label}>Color</Text>
             <View style={styles.swatches}>
               {swatches.map((swatch) => (
-                <Pressable key={swatch} onPress={() => setColor(swatch)} style={[styles.swatch, { backgroundColor: swatch }, color === swatch && styles.selected]}>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Choose color ${swatch}`} accessibilityState={{ selected: color === swatch }} key={swatch} onPress={() => setColor(swatch)} style={[styles.swatch, { backgroundColor: swatch }, color === swatch && styles.selected]}>
                   {color === swatch ? <Ionicons name="checkmark" size={18} color="#FFFFFF" /> : null}
                 </Pressable>
               ))}

@@ -84,7 +84,7 @@ export default function NewTransactionScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.header}>
-          <Pressable style={styles.close} onPress={() => router.back()}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close transaction editor" style={styles.close} onPress={() => router.back()}>
             <Ionicons name="close" size={22} color={colors.ink} />
           </Pressable>
           <Text style={styles.headerTitle}>{existing ? 'Edit transaction' : 'New transaction'}</Text>

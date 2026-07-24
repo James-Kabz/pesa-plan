@@ -156,7 +156,7 @@ function UnlockScreen({ onUnlock }: { onUnlock: () => void }) {
       <Pressable disabled={pin.length !== 4} style={[styles.unlockButton, pin.length !== 4 && styles.disabled]} onPress={() => void verify()}>
         <Text style={styles.unlockButtonText}>Unlock</Text>
       </Pressable>
-      <Pressable style={styles.bioButton} onPress={() => void useBiometric()}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Unlock with biometrics" style={styles.bioButton} onPress={() => void useBiometric()}>
         <Ionicons name="finger-print" size={20} color={colors.primary} />
         <Text style={styles.bioText}>Use biometrics</Text>
       </Pressable>

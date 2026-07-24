@@ -21,7 +21,7 @@ export default function DebtScreen() {
           <Text style={styles.eyebrow}>SEE THE FINISH LINE</Text>
           <Text style={styles.title}>Debt</Text>
         </View>
-        <Pressable style={styles.add} onPress={() => router.push('/debt/editor')}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Add debt" style={styles.add} onPress={() => router.push('/debt/editor')}>
           <Ionicons name="add" size={24} color="#FFFFFF" />
         </Pressable>
       </View>

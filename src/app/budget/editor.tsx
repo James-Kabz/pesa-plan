@@ -46,7 +46,7 @@ export default function BudgetEditorScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Pressable style={styles.headerButton} onPress={() => router.back()}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close budget editor" style={styles.headerButton} onPress={() => router.back()}>
           <Ionicons name="close" size={22} color={colors.ink} />
         </Pressable>
         <Text style={styles.headerTitle}>{existing ? 'Edit budget' : 'New budget'}</Text>

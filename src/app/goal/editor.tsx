@@ -36,7 +36,7 @@ export default function GoalEditorScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Pressable style={styles.headerButton} onPress={() => router.back()}><Ionicons name="close" size={22} color={colors.ink} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close goal editor" style={styles.headerButton} onPress={() => router.back()}><Ionicons name="close" size={22} color={colors.ink} /></Pressable>
         <Text style={styles.headerTitle}>{goal ? `Add to ${goal.name}` : 'New savings goal'}</Text>
         <View style={styles.headerButton} />
       </View>

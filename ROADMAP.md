@@ -59,14 +59,15 @@ Status: **Complete**
 
 ## Stage 6 — Testing and release
 
-Status: **Not started**
+Status: **In progress**
 
-- [ ] Unit tests for all money calculations
-- [ ] Database migration tests
+- [x] Unit tests for money, backup, and export calculations
+- [x] Executable database migration and integrity tests
 - [ ] Accessibility and device-size testing
 - [ ] Android internal testing
 - [ ] iOS TestFlight
-- [ ] Store privacy disclosures and release
+- [x] Store privacy disclosure draft and EAS release configuration
+- [ ] Store submissions and production release
 
 ## Product principles
 

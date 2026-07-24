@@ -14,11 +14,11 @@ export default function FundsScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Pressable style={styles.headerButton} onPress={() => router.back()}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Go back" style={styles.headerButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color={colors.ink} />
         </Pressable>
         <Text style={styles.headerTitle}>Sinking funds</Text>
-        <Pressable style={styles.headerButton} onPress={() => router.push('/fund/editor')}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Add sinking fund" style={styles.headerButton} onPress={() => router.push('/fund/editor')}>
           <Ionicons name="add" size={24} color={colors.primary} />
         </Pressable>
       </View>

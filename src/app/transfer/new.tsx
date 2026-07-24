@@ -71,7 +71,7 @@ export default function NewTransferScreen() {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
-          <Pressable style={styles.headerButton} onPress={() => router.back()}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close transfer editor" style={styles.headerButton} onPress={() => router.back()}>
             <Ionicons name="close" size={22} color={colors.ink} />
           </Pressable>
           <Text style={styles.headerTitle}>Transfer money</Text>

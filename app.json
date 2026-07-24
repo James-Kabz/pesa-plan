@@ -5,15 +5,17 @@
     "scheme": "pesaplan",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/pesa-plan-icon-v1.png",
     "userInterfaceStyle": "automatic",
     "experiments": {
       "typedRoutes": true
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jimkar.pesaplan"
     },
     "android": {
+      "package": "com.jimkar.pesaplan",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
