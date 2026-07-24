@@ -1,28 +1,45 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatMoney } from '@/domain/money';
 import type { FinanceTransaction } from '@/domain/types';
 import { colors, radius, spacing } from '@/theme';
 
-export function TransactionRow({ transaction }: { transaction: FinanceTransaction }) {
+export function TransactionRow({
+  transaction,
+  onPress,
+  onLongPress,
+}: {
+  transaction: FinanceTransaction;
+  onPress?: () => void;
+  onLongPress?: () => void;
+}) {
   const isIncome = transaction.type === 'income';
+  const isTransfer = transaction.type === 'transfer';
   const date = new Intl.DateTimeFormat('en-KE', {
     day: 'numeric',
     month: 'short',
   }).format(new Date(transaction.occurredAt));
 
   return (
-    <View style={styles.row}>
+    <Pressable
+      style={({ pressed }) => [styles.row, pressed && onLongPress ? styles.pressed : undefined]}
+      onLongPress={onLongPress}
+      onPress={onPress}
+      delayLongPress={450}
+    >
       <View
         style={[
           styles.iconWrap,
-          { backgroundColor: isIncome ? colors.primarySoft : colors.expenseSoft },
+          {
+            backgroundColor:
+              isIncome || isTransfer ? colors.primarySoft : colors.expenseSoft,
+          },
         ]}
       >
         <Ionicons
           name={transaction.categoryIcon as keyof typeof Ionicons.glyphMap}
           size={20}
-          color={isIncome ? colors.income : colors.expense}
+          color={isTransfer ? colors.primary : isIncome ? colors.income : colors.expense}
         />
       </View>
       <View style={styles.details}>
@@ -33,11 +50,16 @@ export function TransactionRow({ transaction }: { transaction: FinanceTransactio
           {transaction.accountName} · {date}
         </Text>
       </View>
-      <Text style={[styles.amount, isIncome ? styles.income : styles.expense]}>
-        {isIncome ? '+' : '−'}
+      <Text
+        style={[
+          styles.amount,
+          isTransfer ? styles.transfer : isIncome ? styles.income : styles.expense,
+        ]}
+      >
+        {isTransfer ? '' : isIncome ? '+' : '−'}
         {formatMoney(transaction.amountMinor)}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -46,6 +68,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
+  },
+  pressed: {
+    opacity: 0.6,
   },
   iconWrap: {
     width: 42,
@@ -78,5 +103,8 @@ const styles = StyleSheet.create({
   },
   expense: {
     color: colors.ink,
+  },
+  transfer: {
+    color: colors.primary,
   },
 });

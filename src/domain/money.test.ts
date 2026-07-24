@@ -41,6 +41,21 @@ describe('summarizeTransactions', () => {
       savingsRate: 0,
     });
   });
+
+  it('does not count transfers as income or spending', () => {
+    expect(
+      summarizeTransactions([
+        { type: 'income', amountMinor: 100_000 },
+        { type: 'expense', amountMinor: 20_000 },
+        { type: 'transfer', amountMinor: 50_000 },
+      ]),
+    ).toEqual({
+      incomeMinor: 100_000,
+      expenseMinor: 20_000,
+      netMinor: 80_000,
+      savingsRate: 80,
+    });
+  });
 });
 
 describe('currentMonthRange', () => {

@@ -1,5 +1,6 @@
 export type AccountType = 'cash' | 'bank' | 'mobile_money' | 'credit';
 export type TransactionType = 'income' | 'expense';
+export type TransactionKind = TransactionType | 'transfer';
 
 export interface Account {
   id: string;
@@ -27,7 +28,7 @@ export interface FinanceTransaction {
   categoryId: string;
   categoryName: string;
   categoryIcon: string;
-  type: TransactionType;
+  type: TransactionKind;
   amountMinor: number;
   note: string | null;
   occurredAt: string;
@@ -42,9 +43,27 @@ export interface MonthlySummary {
 }
 
 export interface NewTransaction {
+  id?: string;
   accountId: string;
   categoryId: string;
   type: TransactionType;
+  amountMinor: number;
+  note?: string;
+  occurredAt: string;
+}
+
+export interface AccountInput {
+  id?: string;
+  name: string;
+  type: AccountType;
+  currency: string;
+  openingBalanceMinor: number;
+  color: string;
+}
+
+export interface NewTransfer {
+  fromAccountId: string;
+  toAccountId: string;
   amountMinor: number;
   note?: string;
   occurredAt: string;

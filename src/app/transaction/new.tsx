@@ -20,19 +20,24 @@ import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function NewTransactionScreen() {
-  const params = useLocalSearchParams<{ type?: string }>();
-  const initialType: TransactionType = params.type === 'income' ? 'income' : 'expense';
+  const params = useLocalSearchParams<{ type?: string; id?: string }>();
   const { accounts, categories, addTransaction } = useFinance();
+  const { transactions } = useFinance();
+  const existing = transactions.find((transaction) => transaction.id === params.id);
+  const initialType: TransactionType =
+    existing?.type === 'income' || params.type === 'income' ? 'income' : 'expense';
   const [type, setType] = useState<TransactionType>(initialType);
-  const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
+  const [amount, setAmount] = useState(existing ? String(existing.amountMinor / 100) : '');
+  const [note, setNote] = useState(existing?.note ?? '');
+  const [accountId, setAccountId] = useState(existing?.accountId ?? accounts[0]?.id ?? '');
   const relevantCategories = useMemo(
     () => categories.filter((category) => category.type === type),
     [categories, type],
   );
   const [categoryId, setCategoryId] = useState(
-    categories.find((category) => category.type === initialType)?.id ?? '',
+    existing?.categoryId ??
+      categories.find((category) => category.type === initialType)?.id ??
+      '',
   );
   const [saving, setSaving] = useState(false);
 
@@ -55,12 +60,13 @@ export default function NewTransactionScreen() {
     try {
       setSaving(true);
       await addTransaction({
+        id: existing?.id,
         accountId,
         categoryId,
         type,
         amountMinor,
         note,
-        occurredAt: new Date().toISOString(),
+        occurredAt: existing?.occurredAt ?? new Date().toISOString(),
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
@@ -80,7 +86,7 @@ export default function NewTransactionScreen() {
           <Pressable style={styles.close} onPress={() => router.back()}>
             <Ionicons name="close" size={22} color={colors.ink} />
           </Pressable>
-          <Text style={styles.headerTitle}>New transaction</Text>
+          <Text style={styles.headerTitle}>{existing ? 'Edit transaction' : 'New transaction'}</Text>
           <View style={styles.close} />
         </View>
 
@@ -188,7 +194,9 @@ export default function NewTransactionScreen() {
             onPress={() => void save()}
             style={({ pressed }) => [styles.save, (pressed || saving) && styles.savePressed]}
           >
-            <Text style={styles.saveText}>{saving ? 'Saving…' : `Save ${type}`}</Text>
+            <Text style={styles.saveText}>
+              {saving ? 'Saving…' : existing ? 'Update transaction' : `Save ${type}`}
+            </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

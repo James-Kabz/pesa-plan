@@ -68,11 +68,7 @@ export default function DashboardScreen() {
           label="Add expense"
           onPress={() => router.push({ pathname: '/transaction/new', params: { type: 'expense' } })}
         />
-        <QuickAction
-          icon="receipt-outline"
-          label="View activity"
-          onPress={() => router.push('/(tabs)/transactions')}
-        />
+        <QuickAction icon="wallet-outline" label="Accounts" onPress={() => router.push('/accounts')} />
       </View>
 
       <SectionHeader title="Accounts" action={`${accounts.length} total`} />

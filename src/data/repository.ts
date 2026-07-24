@@ -1,9 +1,12 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type {
   Account,
+  AccountInput,
   Category,
   FinanceTransaction,
   NewTransaction,
+  NewTransfer,
+  TransactionKind,
   TransactionType,
 } from '@/domain/types';
 
@@ -25,7 +28,7 @@ interface TransactionRow {
   category_id: string;
   category_name: string;
   category_icon: string;
-  type: TransactionType;
+  type: TransactionKind;
   amount_minor: number;
   note: string | null;
   occurred_at: string;
@@ -36,12 +39,18 @@ export async function listAccounts(db: SQLiteDatabase): Promise<Account[]> {
   const rows = await db.getAllAsync<AccountRow>(`
     SELECT
       a.*,
-      a.opening_balance_minor + COALESCE(SUM(
-        CASE WHEN t.type = 'income' THEN t.amount_minor ELSE -t.amount_minor END
+      a.opening_balance_minor
+      + COALESCE((
+        SELECT SUM(CASE WHEN t.type = 'income' THEN t.amount_minor ELSE -t.amount_minor END)
+        FROM transactions t WHERE t.account_id = a.id
+      ), 0)
+      + COALESCE((
+        SELECT SUM(tr.amount_minor) FROM transfers tr WHERE tr.to_account_id = a.id
+      ), 0)
+      - COALESCE((
+        SELECT SUM(tr.amount_minor) FROM transfers tr WHERE tr.from_account_id = a.id
       ), 0) AS current_balance_minor
     FROM accounts a
-    LEFT JOIN transactions t ON t.account_id = a.id
-    GROUP BY a.id
     ORDER BY a.created_at ASC
   `);
 
@@ -91,17 +100,33 @@ export async function listTransactions(
     FROM transactions t
     JOIN accounts a ON a.id = t.account_id
     JOIN categories c ON c.id = t.category_id
+    UNION ALL
+    SELECT
+      tr.id,
+      tr.from_account_id AS account_id,
+      source.name || ' → ' || destination.name AS account_name,
+      'transfer' AS category_id,
+      'Transfer' AS category_name,
+      'swap-horizontal-outline' AS category_icon,
+      'transfer' AS type,
+      tr.amount_minor,
+      tr.note,
+      tr.occurred_at,
+      tr.created_at
+    FROM transfers tr
+    JOIN accounts source ON source.id = tr.from_account_id
+    JOIN accounts destination ON destination.id = tr.to_account_id
   `;
   const rows = range
     ? await db.getAllAsync<TransactionRow>(
-        `${selection}
-         WHERE t.occurred_at >= ? AND t.occurred_at < ?
-         ORDER BY t.occurred_at DESC, t.created_at DESC`,
+        `SELECT * FROM (${selection})
+         WHERE occurred_at >= ? AND occurred_at < ?
+         ORDER BY occurred_at DESC, created_at DESC`,
         range.start,
         range.end,
       )
     : await db.getAllAsync<TransactionRow>(
-        `${selection} ORDER BY t.occurred_at DESC, t.created_at DESC`,
+        `SELECT * FROM (${selection}) ORDER BY occurred_at DESC, created_at DESC`,
       );
 
   return rows.map((row) => ({
@@ -123,6 +148,22 @@ export async function createTransaction(
   db: SQLiteDatabase,
   transaction: NewTransaction,
 ): Promise<void> {
+  if (transaction.id) {
+    await db.runAsync(
+      `UPDATE transactions
+       SET account_id = ?, category_id = ?, type = ?, amount_minor = ?, note = ?, occurred_at = ?
+       WHERE id = ?`,
+      transaction.accountId,
+      transaction.categoryId,
+      transaction.type,
+      transaction.amountMinor,
+      transaction.note?.trim() || null,
+      transaction.occurredAt,
+      transaction.id,
+    );
+    return;
+  }
+
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   await db.runAsync(
     `INSERT INTO transactions
@@ -135,6 +176,77 @@ export async function createTransaction(
     transaction.amountMinor,
     transaction.note?.trim() || null,
     transaction.occurredAt,
+    new Date().toISOString(),
+  );
+}
+
+export async function saveAccount(db: SQLiteDatabase, account: AccountInput): Promise<void> {
+  if (account.id) {
+    await db.runAsync(
+      `UPDATE accounts
+       SET name = ?, type = ?, currency = ?, opening_balance_minor = ?, color = ?
+       WHERE id = ?`,
+      account.name.trim(),
+      account.type,
+      account.currency,
+      account.openingBalanceMinor,
+      account.color,
+      account.id,
+    );
+    return;
+  }
+
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  await db.runAsync(
+    `INSERT INTO accounts
+      (id, name, type, currency, opening_balance_minor, color, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    id,
+    account.name.trim(),
+    account.type,
+    account.currency,
+    account.openingBalanceMinor,
+    account.color,
+    new Date().toISOString(),
+  );
+}
+
+export async function deleteTransaction(db: SQLiteDatabase, id: string): Promise<void> {
+  await db.withExclusiveTransactionAsync(async (transaction) => {
+    await transaction.runAsync('DELETE FROM transactions WHERE id = ?', id);
+    await transaction.runAsync('DELETE FROM transfers WHERE id = ?', id);
+  });
+}
+
+export async function createTransfer(
+  db: SQLiteDatabase,
+  transfer: NewTransfer,
+): Promise<void> {
+  if (transfer.fromAccountId === transfer.toAccountId) {
+    throw new Error('Transfer accounts must be different');
+  }
+  const transferAccounts = await db.getAllAsync<{ id: string; currency: string }>(
+    'SELECT id, currency FROM accounts WHERE id IN (?, ?)',
+    transfer.fromAccountId,
+    transfer.toAccountId,
+  );
+  if (
+    transferAccounts.length !== 2 ||
+    transferAccounts[0].currency !== transferAccounts[1].currency
+  ) {
+    throw new Error('Transfers require two accounts with the same currency');
+  }
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  await db.runAsync(
+    `INSERT INTO transfers
+      (id, from_account_id, to_account_id, amount_minor, note, occurred_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    id,
+    transfer.fromAccountId,
+    transfer.toAccountId,
+    transfer.amountMinor,
+    transfer.note?.trim() || null,
+    transfer.occurredAt,
     new Date().toISOString(),
   );
 }

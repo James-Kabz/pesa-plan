@@ -10,7 +10,9 @@ Stage 1 is in progress. The app currently includes:
 - an Expo + React Native + TypeScript foundation;
 - a persistent SQLite database with migrations;
 - accounts and seeded transaction categories;
-- income and expense entry;
+- account creation and editing;
+- income and expense creation, editing, filtering, and deletion;
+- same-currency transfers that remain neutral in cash-flow reports;
 - current-month cash-flow calculations;
 - dashboard, transaction, plan, debt, and report navigation.
 

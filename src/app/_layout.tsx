@@ -27,6 +27,15 @@ export default function RootLayout() {
               name="transaction/new"
               options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
             />
+            <Stack.Screen name="accounts/index" />
+            <Stack.Screen
+              name="account/editor"
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
+            <Stack.Screen
+              name="transfer/new"
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
           </Stack>
         </FinanceProvider>
       </SQLiteProvider>

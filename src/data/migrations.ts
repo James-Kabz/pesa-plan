@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 const categories = [
   ['salary', 'Salary', 'income', 'briefcase-outline', '#2B7A5D'],
@@ -82,6 +82,26 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
     });
 
     version = 1;
+  }
+
+  if (version === 1) {
+    await db.execAsync(`
+      CREATE TABLE transfers (
+        id TEXT PRIMARY KEY NOT NULL,
+        from_account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+        to_account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+        amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
+        note TEXT,
+        occurred_at TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        CHECK (from_account_id != to_account_id)
+      );
+
+      CREATE INDEX transfers_from_account_idx ON transfers(from_account_id);
+      CREATE INDEX transfers_to_account_idx ON transfers(to_account_id);
+      CREATE INDEX transfers_occurred_at_idx ON transfers(occurred_at DESC);
+    `);
+    version = 2;
   }
 
   await db.execAsync(`PRAGMA user_version = ${Math.max(version, DATABASE_VERSION)}`);

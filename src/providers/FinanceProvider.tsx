@@ -3,16 +3,21 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { currentMonthRange, summarizeTransactions } from '@/domain/money';
 import type {
   Account,
+  AccountInput,
   Category,
   FinanceTransaction,
   MonthlySummary,
   NewTransaction,
+  NewTransfer,
 } from '@/domain/types';
 import {
   createTransaction,
+  createTransfer,
+  deleteTransaction,
   listAccounts,
   listCategories,
   listTransactions,
+  saveAccount,
 } from '@/data/repository';
 
 interface FinanceContextValue {
@@ -24,6 +29,9 @@ interface FinanceContextValue {
   isLoading: boolean;
   refresh: () => Promise<void>;
   addTransaction: (transaction: NewTransaction) => Promise<void>;
+  saveAccount: (account: AccountInput) => Promise<void>;
+  removeTransaction: (id: string) => Promise<void>;
+  addTransfer: (transfer: NewTransfer) => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
@@ -64,6 +72,30 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     [db, refresh],
   );
 
+  const persistAccount = useCallback(
+    async (account: AccountInput) => {
+      await saveAccount(db, account);
+      await refresh();
+    },
+    [db, refresh],
+  );
+
+  const removeTransaction = useCallback(
+    async (id: string) => {
+      await deleteTransaction(db, id);
+      await refresh();
+    },
+    [db, refresh],
+  );
+
+  const addTransfer = useCallback(
+    async (transfer: NewTransfer) => {
+      await createTransfer(db, transfer);
+      await refresh();
+    },
+    [db, refresh],
+  );
+
   const monthlySummary = useMemo(
     () => summarizeTransactions(monthlyTransactions),
     [monthlyTransactions],
@@ -79,6 +111,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       refresh,
       addTransaction,
+      saveAccount: persistAccount,
+      removeTransaction,
+      addTransfer,
     }),
     [
       accounts,
@@ -89,6 +124,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       refresh,
       addTransaction,
+      persistAccount,
+      removeTransaction,
+      addTransfer,
     ],
   );
 

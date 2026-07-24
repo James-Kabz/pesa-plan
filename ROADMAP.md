@@ -14,9 +14,9 @@ Status: **In progress**
 - [x] Seed default categories and a starter cash account
 - [x] Add income and expense entry
 - [x] Calculate account balances and monthly cash flow
-- [ ] Add account creation and editing
-- [ ] Add transaction editing, deletion, search, and filters
-- [ ] Add transfers between accounts
+- [x] Add account creation and editing
+- [x] Add transaction editing, deletion, search, and filters
+- [x] Add transfers between same-currency accounts
 - [ ] Add recurring transactions
 
 ## Stage 2 — Budgets and bills
