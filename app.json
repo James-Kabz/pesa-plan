@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/pesa-plan-icon-v1.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "experiments": {
       "typedRoutes": true
     },
@@ -16,11 +16,10 @@
     },
     "android": {
       "package": "com.jimkar.pesaplan",
+      "allowBackup": false,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#0F2D23",
+        "foregroundImage": "./assets/pesa-plan-icon-v1.png"
       },
       "predictiveBackGestureEnabled": false
     },

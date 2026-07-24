@@ -5,7 +5,8 @@ cash flow, budgets, savings, debt, and net worth.
 
 ## Current milestone
 
-Stage 1 is in progress. The app currently includes:
+Stages 1–5 are complete and Stage 6 release validation is in progress. The app
+currently includes:
 
 - an Expo + React Native + TypeScript foundation;
 - a persistent SQLite database with migrations;
@@ -41,7 +42,12 @@ web support is currently alpha.
 ```bash
 npm run typecheck
 npm run check
+npm run release:check
 ```
+
+`release:check` runs strict TypeScript validation, the unit and SQLite
+integration suites, Expo Doctor, and a production Android JavaScript export.
+The same gate runs in GitHub Actions for pushes and pull requests.
 
 ## Architecture
 

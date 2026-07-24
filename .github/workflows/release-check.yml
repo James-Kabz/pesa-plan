@@ -1,0 +1,39 @@
+name: Release check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run release gate
+        run: npm run release:check
+
+      - name: Upload Android export
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-javascript-export
+          path: work/release-android
+          if-no-files-found: error
+          retention-days: 7

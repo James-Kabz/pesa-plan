@@ -63,6 +63,7 @@ Status: **In progress**
 
 - [x] Unit tests for money, backup, and export calculations
 - [x] Executable database migration and integrity tests
+- [x] Reproducible clean-install CI release gate
 - [ ] Accessibility and device-size testing
 - [ ] Android internal testing
 - [ ] iOS TestFlight

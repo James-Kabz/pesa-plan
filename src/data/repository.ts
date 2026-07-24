@@ -509,12 +509,12 @@ export async function listCategorySpending(
 
 export async function listMonthlyTrends(db: SQLiteDatabase): Promise<MonthlyTrend[]> {
   return db.getAllAsync<MonthlyTrend>(`
-    SELECT substr(occurred_at, 1, 7) AS month,
-      SUM(CASE WHEN type = 'income' THEN amount_minor ELSE 0 END) AS incomeMinor,
-      SUM(CASE WHEN type = 'expense' THEN amount_minor ELSE 0 END) AS expenseMinor
+    SELECT substr(t.occurred_at, 1, 7) AS month,
+      SUM(CASE WHEN t.type = 'income' THEN t.amount_minor ELSE 0 END) AS incomeMinor,
+      SUM(CASE WHEN t.type = 'expense' THEN t.amount_minor ELSE 0 END) AS expenseMinor
     FROM transactions t JOIN accounts a ON a.id = t.account_id
     WHERE a.currency = 'KES'
-    GROUP BY substr(occurred_at, 1, 7)
+    GROUP BY substr(t.occurred_at, 1, 7)
     ORDER BY month DESC LIMIT 6
   `);
 }

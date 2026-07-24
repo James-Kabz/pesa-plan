@@ -1,53 +1,6 @@
-import path from 'node:path';
-import initSqlJs, { type Database, type SqlValue } from 'sql.js';
 import { describe, expect, it } from 'vitest';
-import type { SQLiteDatabase } from 'expo-sqlite';
+import { createTestDatabase } from '../test/sqlite';
 import { migrateDatabase } from './migrations';
-
-class SqlJsExpoAdapter {
-  constructor(private readonly database: Database) {}
-
-  async execAsync(sql: string) {
-    this.database.run(sql);
-  }
-
-  async getFirstAsync<T>(sql: string, ...params: SqlValue[]): Promise<T | null> {
-    const statement = this.database.prepare(sql);
-    try {
-      statement.bind(params);
-      return statement.step() ? (statement.getAsObject() as T) : null;
-    } finally {
-      statement.free();
-    }
-  }
-
-  async runAsync(sql: string, ...params: SqlValue[]) {
-    this.database.run(sql, params);
-    return { changes: this.database.getRowsModified(), lastInsertRowId: 0 };
-  }
-
-  async withExclusiveTransactionAsync(
-    task: (transaction: SqlJsExpoAdapter) => Promise<void>,
-  ) {
-    this.database.run('BEGIN');
-    try {
-      await task(this);
-      this.database.run('COMMIT');
-    } catch (error) {
-      this.database.run('ROLLBACK');
-      throw error;
-    }
-  }
-}
-
-async function createTestDatabase() {
-  const SQL = await initSqlJs({
-    locateFile: (file) => path.resolve('node_modules/sql.js/dist', file),
-  });
-  const raw = new SQL.Database();
-  const adapter = new SqlJsExpoAdapter(raw);
-  return { raw, expo: adapter as unknown as SQLiteDatabase };
-}
 
 describe('database migrations', () => {
   it('builds the complete schema, seeds defaults, and is idempotent', async () => {
@@ -96,6 +49,60 @@ describe('database migrations', () => {
          VALUES ('bad', 'starter-cash', 'starter-cash', 100, 'now', 'now')`,
       ),
     ).toThrow();
+    raw.close();
+  });
+
+  it('upgrades a populated version-1 database through version 7 without data loss', async () => {
+    const { raw, expo } = await createTestDatabase();
+    await expo.execAsync(`
+      PRAGMA foreign_keys = ON;
+      CREATE TABLE accounts (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK (type IN ('cash', 'bank', 'mobile_money', 'credit')),
+        currency TEXT NOT NULL DEFAULT 'KES',
+        opening_balance_minor INTEGER NOT NULL DEFAULT 0,
+        color TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE TABLE categories (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+        icon TEXT NOT NULL,
+        color TEXT NOT NULL
+      );
+      CREATE TABLE transactions (
+        id TEXT PRIMARY KEY NOT NULL,
+        account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+        category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+        type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+        amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
+        note TEXT,
+        occurred_at TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX transactions_occurred_at_idx ON transactions(occurred_at DESC);
+      CREATE INDEX transactions_account_id_idx ON transactions(account_id);
+      INSERT INTO accounts VALUES
+        ('legacy-cash', 'Legacy cash', 'cash', 'KES', 10000, '#175C45', '2026-01-01');
+      INSERT INTO categories VALUES
+        ('legacy-income', 'Legacy income', 'income', 'cash-outline', '#175C45');
+      INSERT INTO transactions VALUES
+        ('legacy-transaction', 'legacy-cash', 'legacy-income', 'income', 25000,
+         'Preserve me', '2026-01-02', '2026-01-02');
+      PRAGMA user_version = 1;
+    `);
+
+    await migrateDatabase(expo);
+
+    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(7);
+    expect(raw.exec(`SELECT note FROM transactions WHERE id = 'legacy-transaction'`)[0].values)
+      .toEqual([['Preserve me']]);
+    expect(
+      raw.exec(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'financial_snapshots'`)[0]
+        .values[0][0],
+    ).toBe(1);
     raw.close();
   });
 });

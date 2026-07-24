@@ -4,6 +4,8 @@ Last updated: 24 July 2026
 
 Pesa Plan is offline-first. It does not require an account, contain advertising
 SDKs, or automatically send financial records to a developer-controlled server.
+Android operating-system cloud backup is disabled for the app, so its local
+database is not silently copied to Google Drive.
 
 ## Data stored on the device
 

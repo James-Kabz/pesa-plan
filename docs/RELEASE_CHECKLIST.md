@@ -7,6 +7,9 @@
 - [x] All migration, encryption, CSV, and money-calculation tests pass
 - [x] Expo Doctor reports 20/20 checks
 - [x] Android production bundle completes
+- [x] Android native prebuild applies the branded icon and disables OS cloud backup
+- [x] GitHub Actions workflow is configured to repeat the locked-install release gate
+- [ ] First hosted GitHub Actions run passes after a remote is connected
 
 ## Manual device matrix
 
@@ -22,12 +25,14 @@
 
 ## Finance and data integrity
 
-- [ ] Fresh install creates the starter account and 12 categories
-- [ ] Upgrade an existing version-1 database through version 7
-- [ ] Income, expense, edit, delete, transfer, and recurring posting recalculate balances
-- [ ] KES reports exclude accounts in other currencies
-- [ ] Backup decrypts with the correct password and rejects a wrong password
-- [ ] Restore replaces all supported tables and the restored app restarts cleanly
+- [x] Automated fresh-database test creates the starter account and 12 categories
+- [x] Automated populated version-1 fixture upgrades through version 7 without data loss
+- [ ] Repeat the version-1 upgrade on a physical device
+- [x] Integration tests cover income, expense, edit, delete, transfer, and recurring balances
+- [x] Integration tests prove KES reports exclude accounts in other currencies
+- [x] Backup decrypts with the correct password and rejects a wrong password
+- [x] Integration test replaces all supported tables and rolls back invalid restore rows
+- [ ] Restored app restarts cleanly on a physical device
 
 ## Security
 
