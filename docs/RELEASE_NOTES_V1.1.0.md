@@ -31,3 +31,14 @@ begins.
   account links for migrated savings goals.
 - Existing accounts, transactions, transfers, budgets, funds, goals, debts,
   reports, and backups remain compatible.
+
+## Android artifact
+
+- EAS build: `137d4f91-51eb-4ef5-8dea-1ac7598a1b12`
+- Package: `com.jimkar.pesaplan`
+- Version name: `1.1.0`
+- Version code: `5`
+- SHA-256:
+  `0463382211fea75f62b720e57d08c3b93433c93460f07367f1088f0db593a279`
+- Signed with the same release certificate as Version 1.0 so it can be
+  installed as an in-place update.

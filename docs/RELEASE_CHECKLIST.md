@@ -91,3 +91,12 @@ Device: Samsung Galaxy A55 (`SM-A556E`), Android 16.
   `710a04f1a2aa8ad7a809acd9d2a99c5ba9182face2640b68646f6fb36c088fe3`.
 - The original display size, 420 dpi override, 90% font scale, app data, and
   no-PIN state were restored after testing.
+
+## Android Version 1.1 artifact — 24 July 2026
+
+- [x] Version 1.1 clean-install CI release gate passes
+- [x] Signed standalone APK produced with package `com.jimkar.pesaplan`
+- [x] APK reports version name 1.1.0 and version code 5
+- [x] APK signature matches the tested Version 1.0 release certificate
+- [x] APK archive integrity and permission manifest verified
+- [ ] Install as an in-place update and validate the Version 7-to-9 database migration on the physical device
