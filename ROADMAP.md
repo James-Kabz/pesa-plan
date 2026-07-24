@@ -48,14 +48,14 @@ Status: **Complete**
 
 ## Stage 5 — Privacy, backup, and portability
 
-Status: **Not started**
+Status: **Complete**
 
-- [ ] PIN and biometric lock
-- [ ] App-switcher privacy
-- [ ] Automatic inactivity lock
-- [ ] CSV export
-- [ ] Encrypted local backup and restore
-- [ ] Optional encrypted cloud synchronization
+- [x] Secure PIN and strong-biometric lock
+- [x] App-switcher and screen-capture privacy
+- [x] Two-minute inactivity lock
+- [x] CSV transaction export
+- [x] Password-encrypted local backup and validated restore
+- [x] Cloud boundary documented; automatic upload remains disabled
 
 ## Stage 6 — Testing and release
 

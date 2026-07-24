@@ -30,7 +30,15 @@
       "expo-router",
       "expo-status-bar",
       "expo-sqlite",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Pesa Plan to unlock your private financial data."
+        }
+      ],
+      "expo-secure-store",
+      "expo-sharing"
     ]
   }
 }

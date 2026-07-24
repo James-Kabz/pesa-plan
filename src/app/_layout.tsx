@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { FinanceProvider } from '@/providers/FinanceProvider';
 import { migrateDatabase } from '@/data/migrations';
 import { colors } from '@/theme';
+import { SecurityProvider } from '@/providers/SecurityProvider';
 
 function LoadingDatabase() {
   return (
@@ -18,8 +19,9 @@ function LoadingDatabase() {
 export default function RootLayout() {
   return (
     <Suspense fallback={<LoadingDatabase />}>
-      <SQLiteProvider databaseName="pesa-plan.db" onInit={migrateDatabase} useSuspense>
-        <FinanceProvider>
+      <SecurityProvider>
+        <SQLiteProvider databaseName="pesa-plan.db" onInit={migrateDatabase} useSuspense>
+          <FinanceProvider>
           <StatusBar style="dark" />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
@@ -54,9 +56,11 @@ export default function RootLayout() {
               name="debt/editor"
               options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
             />
+            <Stack.Screen name="settings/index" />
           </Stack>
-        </FinanceProvider>
-      </SQLiteProvider>
+          </FinanceProvider>
+        </SQLiteProvider>
+      </SecurityProvider>
     </Suspense>
   );
 }

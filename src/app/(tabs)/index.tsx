@@ -25,7 +25,7 @@ export default function DashboardScreen() {
           <Text style={styles.eyebrow}>YOUR MONEY</Text>
           <Text style={styles.greeting}>Good day</Text>
         </View>
-        <Pressable style={styles.profile}>
+        <Pressable style={styles.profile} onPress={() => router.push('/settings')}>
           <Ionicons name="person-outline" size={19} color={colors.primary} />
         </Pressable>
       </View>

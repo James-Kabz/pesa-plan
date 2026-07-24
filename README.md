@@ -20,6 +20,8 @@ Stage 1 is in progress. The app currently includes:
 - savings goals and emergency-fund coverage;
 - debt balances, payment history, payoff estimates, and snowball/avalanche priorities;
 - category and monthly trends, net-worth snapshots, and 30-day cash-flow forecasting;
+- secure PIN/biometric locking, background privacy, and inactivity locking;
+- CSV export and password-encrypted full backup/restore;
 - dashboard, transaction, plan, debt, and report navigation.
 
 See [ROADMAP.md](./ROADMAP.md) for the durable delivery plan and status.
