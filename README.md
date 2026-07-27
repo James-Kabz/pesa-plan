@@ -68,9 +68,11 @@ After that, start Metro for the installed Pesa Plan development build:
 npm start
 ```
 
-Then press `a` for Android. The SDK 57 app uses a dedicated development build,
-not Expo Go. Press `w` for the configured web preview; the app remains
-mobile-first and Expo SQLite's web support is alpha.
+Then press `a` for Android. The default start command uses the USB-forwarded
+localhost connection, so it does not depend on the phone and computer sharing a
+working Wi-Fi network. The SDK 57 app uses a dedicated development build, not
+Expo Go. Press `w` for the configured web preview; the app remains mobile-first
+and Expo SQLite's web support is alpha.
 
 ## Quality checks
 

@@ -58,7 +58,8 @@
           "color": "#175C45",
           "defaultChannel": "pesa-plan-reminders"
         }
-      ]
+      ],
+      "expo-splash-screen"
     ],
     "extra": {
       "eas": {
