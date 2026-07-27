@@ -115,9 +115,11 @@ Status: **Started**
 
 ### Stage 9 — Local planning assistance
 
-Status: **Planned**
+Status: **Started**
 
-- [ ] Confirmed recurring-pattern suggestions without automatic posting
+- [x] Confirmed recurring-pattern suggestions without automatic posting
+- [x] Strict weekly and monthly detection with amount-stability and duplicate safeguards
+- [x] Explainable on-device evidence, future due-date calculation, and explicit approval
 - [ ] Local bill, pay-day, budget, and goal reminders
 - [ ] Budget pacing based on time remaining in the month
 - [ ] Savings guidance based on real unallocated account balances

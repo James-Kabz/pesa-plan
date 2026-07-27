@@ -1,14 +1,68 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { formatMoney, getDueStatus } from '@/domain/money';
+import {
+  getRecurringSuggestions,
+  type RecurringSuggestion,
+} from '@/domain/recurringSuggestion';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function PlanScreen() {
   const { recurring, transactions, addRecurring, recordRecurring, budgets, preferences } = useFinance();
   const latest = transactions.find((item) => item.type !== 'transfer');
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
+  const recurringSuggestions = useMemo(
+    () =>
+      getRecurringSuggestions(transactions, recurring).filter(
+        (suggestion) => !dismissedSuggestions.includes(suggestion.key),
+      ),
+    [dismissedSuggestions, recurring, transactions],
+  );
+
+  async function createSuggestedSchedule(suggestion: RecurringSuggestion) {
+    try {
+      await addRecurring({
+        accountId: suggestion.accountId,
+        categoryId: suggestion.categoryId,
+        type: suggestion.type,
+        amountMinor: suggestion.amountMinor,
+        note: suggestion.note,
+        frequency: suggestion.frequency,
+        nextDueAt: suggestion.nextDueAt,
+      });
+      setDismissedSuggestions((current) => [...current, suggestion.key]);
+    } catch {
+      Alert.alert('Could not create schedule', 'The suggestion was not saved. Please try again.');
+    }
+  }
+
+  function confirmSuggestion(suggestion: RecurringSuggestion) {
+    const interval =
+      suggestion.frequency === 'weekly' ? 'about every 7 days' : 'around the same time each month';
+    const nextDue = new Intl.DateTimeFormat('en-KE', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(new Date(suggestion.nextDueAt));
+    Alert.alert(
+      `Create ${suggestion.frequency} schedule?`,
+      `${suggestion.matchCount} confirmed entries occurred ${interval}. The typical amount was ${formatMoney(
+        suggestion.amountMinor,
+        suggestion.currency,
+      )}.\n\nThe next due date will be ${nextDue}. Nothing will be recorded automatically.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Create schedule',
+          onPress: () => void createSuggestedSchedule(suggestion),
+        },
+      ],
+    );
+  }
 
   function repeatLatest() {
     if (!latest) {
@@ -99,6 +153,84 @@ export default function PlanScreen() {
         <Ionicons name="chevron-forward" size={18} color={colors.muted} />
       </Pressable>
 
+      {recurringSuggestions.length ? (
+        <>
+          <View style={styles.suggestionHeading}>
+            <View>
+              <Text style={styles.section}>Suggested schedules</Text>
+              <Text style={styles.suggestionHeadingHint}>Based only on your confirmed activity</Text>
+            </View>
+            <View style={styles.localBadge}>
+              <Ionicons name="phone-portrait-outline" size={12} color={colors.primary} />
+              <Text style={styles.localBadgeText}>On device</Text>
+            </View>
+          </View>
+          <View style={styles.suggestionList}>
+            {recurringSuggestions.slice(0, 3).map((suggestion) => {
+              const interval =
+                suggestion.frequency === 'weekly'
+                  ? `${Math.round(suggestion.averageIntervalDays)} days apart`
+                  : 'about once a month';
+              const nextDue = new Intl.DateTimeFormat('en-KE', {
+                day: 'numeric',
+                month: 'short',
+              }).format(new Date(suggestion.nextDueAt));
+              return (
+                <View key={suggestion.key} style={styles.suggestionCard}>
+                  <View style={styles.suggestionTop}>
+                    <View style={styles.suggestionIcon}>
+                      <Ionicons
+                        name={suggestion.categoryIcon as keyof typeof Ionicons.glyphMap}
+                        size={20}
+                        color={colors.primary}
+                      />
+                    </View>
+                    <View style={styles.details}>
+                      <Text style={styles.name}>{suggestion.note}</Text>
+                      <Text style={styles.suggestionAmount}>
+                        {formatMoney(suggestion.amountMinor, suggestion.currency)} ·{' '}
+                        {suggestion.frequency}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.suggestionReason}>
+                    {suggestion.matchCount} matching entries were {interval}. Suggested next
+                    date: {nextDue}.
+                  </Text>
+                  <Text style={styles.suggestionSafety}>
+                    Creates a reminder schedule only. You still confirm every transaction.
+                  </Text>
+                  <View style={styles.suggestionActions}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Not now for ${suggestion.note} recurring suggestion`}
+                      onPress={() =>
+                        setDismissedSuggestions((current) => [
+                          ...current,
+                          suggestion.key,
+                        ])
+                      }
+                      style={styles.suggestionDismiss}
+                    >
+                      <Text style={styles.suggestionDismissText}>Not now</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Create suggested ${suggestion.frequency} schedule for ${suggestion.note}`}
+                      onPress={() => confirmSuggestion(suggestion)}
+                      style={styles.suggestionCreate}
+                    >
+                      <Ionicons name="add" size={16} color="#FFFFFF" />
+                      <Text style={styles.suggestionCreateText}>Create schedule</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </>
+      ) : null}
+
       <Pressable accessibilityRole="button" accessibilityLabel="Repeat latest transaction monthly" style={styles.add} onPress={repeatLatest}>
         <Ionicons name="repeat-outline" size={20} color="#FFFFFF" />
         <Text style={styles.addText}>Repeat latest transaction monthly</Text>
@@ -173,5 +305,83 @@ const styles = StyleSheet.create({
   secondaryAddText: { color: colors.primary, fontSize: 13, fontWeight: '800' },
   fundLink: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginTop: spacing.xl },
   goalLink: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginTop: spacing.sm },
+  suggestionHeading: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  suggestionHeadingHint: {
+    color: colors.muted,
+    fontSize: 11,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.md,
+  },
+  localBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  localBadgeText: { color: colors.primary, fontSize: 9, fontWeight: '800' },
+  suggestionList: { gap: spacing.sm },
+  suggestionCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: '#BFD8CA',
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+  },
+  suggestionTop: { flexDirection: 'row', alignItems: 'center' },
+  suggestionIcon: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.sm,
+    marginRight: spacing.md,
+  },
+  suggestionAmount: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 3,
+    textTransform: 'capitalize',
+  },
+  suggestionReason: {
+    color: colors.ink,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: spacing.md,
+  },
+  suggestionSafety: {
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 15,
+    marginTop: spacing.xs,
+  },
+  suggestionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  suggestionDismiss: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  suggestionDismissText: { color: colors.muted, fontSize: 11, fontWeight: '800' },
+  suggestionCreate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  suggestionCreateText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
   overdue: { color: colors.expense, fontWeight: '800' },
 });
