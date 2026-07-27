@@ -27,6 +27,9 @@ import {
   recordDebtPayment,
   saveAccount,
   saveBudget,
+  completeOnboarding,
+  getAppPreferences,
+  listExpectedIncome,
 } from './repository';
 
 describe('finance repository integration', () => {
@@ -264,6 +267,48 @@ describe('finance repository integration', () => {
         openingBalanceMinor: account.openingBalanceMinor,
         color: account.color,
       }),
-    ).rejects.toThrow('must remain a KES savings account');
+    ).rejects.toThrow('must remain a savings account');
+  });
+
+  it('completes guided setup without creating income or duplicate planning rows', async () => {
+    const draft = {
+      mainCurrency: 'USD',
+      incomeName: 'Consulting',
+      incomeAmount: '2500',
+      incomeAccountId: 'starter-cash',
+      incomePayDay: '28',
+      incomeIsEstimate: true,
+      budgetAmounts: { housing: '900', transport: '150' },
+    };
+    await db.runAsync(`UPDATE accounts SET currency = 'USD' WHERE id = 'starter-cash'`);
+
+    await completeOnboarding(
+      db,
+      {
+        draft,
+        expectedIncomeMinor: 250_000,
+        payDay: 28,
+        budgetsMinor: { housing: 90_000, transport: 15_000 },
+      },
+      '2026-07',
+    );
+    await completeOnboarding(
+      db,
+      {
+        draft,
+        expectedIncomeMinor: 250_000,
+        payDay: 28,
+        budgetsMinor: { housing: 90_000, transport: 15_000 },
+      },
+      '2026-07',
+    );
+
+    expect(await getAppPreferences(db)).toMatchObject({
+      mainCurrency: 'USD',
+      onboardingStatus: 'complete',
+    });
+    expect(await listExpectedIncome(db)).toHaveLength(1);
+    expect(await listBudgets(db, '2026-07', 'USD')).toHaveLength(2);
+    expect(await listTransactions(db)).toHaveLength(0);
   });
 });

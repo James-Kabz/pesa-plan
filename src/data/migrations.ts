@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { withDatabaseTransaction } from './databaseTransaction';
 
-const DATABASE_VERSION = 9;
+const DATABASE_VERSION = 10;
 
 const categories = [
   ['salary', 'Salary', 'income', 'briefcase-outline', '#2B7A5D'],
@@ -40,6 +40,10 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
 
   const versionRow = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   let version = versionRow?.user_version ?? 0;
+  const existingAccountsTable = await db.getFirstAsync<{ name: string }>(
+    `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'accounts'`,
+  );
+  const isGenuinelyNewInstall = version === 0 && !existingAccountsTable;
 
   if (version === 0) {
     await db.execAsync(`
@@ -264,6 +268,58 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
       CREATE INDEX IF NOT EXISTS savings_goals_account_idx ON savings_goals(account_id);
     `);
     version = 9;
+  }
+
+  if (version === 9) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS expected_income (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
+        account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+        pay_day INTEGER NOT NULL CHECK (pay_day BETWEEN 1 AND 31),
+        amount_is_estimate INTEGER NOT NULL DEFAULT 0 CHECK (amount_is_estimate IN (0, 1)),
+        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+        created_at TEXT NOT NULL
+      );
+
+      PRAGMA foreign_keys = OFF;
+      CREATE TABLE financial_snapshots_v10 (
+        month TEXT NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'KES',
+        account_balance_minor INTEGER NOT NULL,
+        debt_balance_minor INTEGER NOT NULL,
+        net_worth_minor INTEGER NOT NULL,
+        recorded_at TEXT NOT NULL,
+        PRIMARY KEY (month, currency)
+      );
+      INSERT INTO financial_snapshots_v10
+        (month, currency, account_balance_minor, debt_balance_minor, net_worth_minor, recorded_at)
+      SELECT month, 'KES', account_balance_minor, debt_balance_minor, net_worth_minor, recorded_at
+      FROM financial_snapshots;
+      DROP TABLE financial_snapshots;
+      ALTER TABLE financial_snapshots_v10 RENAME TO financial_snapshots;
+      PRAGMA foreign_keys = ON;
+    `);
+
+    await withDatabaseTransaction(db, async (transaction) => {
+      await transaction.runAsync(
+        `INSERT OR IGNORE INTO app_settings (key, value) VALUES ('main_currency', 'KES')`,
+      );
+      await transaction.runAsync(
+        `INSERT OR IGNORE INTO app_settings (key, value) VALUES ('onboarding_status', ?)`,
+        isGenuinelyNewInstall ? 'pending' : 'complete',
+      );
+      await transaction.runAsync(
+        `INSERT OR IGNORE INTO app_settings (key, value) VALUES ('onboarding_step', '0')`,
+      );
+    });
+    version = 10;
   }
 
   await db.execAsync(`PRAGMA user_version = ${Math.max(version, DATABASE_VERSION)}`);

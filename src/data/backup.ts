@@ -22,9 +22,12 @@ const TABLES = [
   'debts',
   'debt_payments',
   'financial_snapshots',
+  'app_settings',
+  'expected_income',
 ] as const;
 
 const DELETE_ORDER = [...TABLES].reverse();
+const OPTIONAL_LEGACY_TABLES = new Set<string>(['app_settings', 'expected_income']);
 
 export interface PesaPlanBackup {
   format: 'pesa-plan-backup';
@@ -129,7 +132,7 @@ export async function restoreBackup(
   backup: PesaPlanBackup,
 ): Promise<void> {
   for (const table of TABLES) {
-    if (!Array.isArray(backup.tables[table])) {
+    if (!Array.isArray(backup.tables[table]) && !OPTIONAL_LEGACY_TABLES.has(table)) {
       throw new Error(`Backup is missing ${table}`);
     }
   }
@@ -146,7 +149,7 @@ export async function restoreBackup(
     }
     for (const table of TABLES) {
       const allowedColumns = columnsByTable[table];
-      for (const row of backup.tables[table]) {
+      for (const row of backup.tables[table] ?? []) {
         const columns = Object.keys(row);
         if (!columns.length || columns.some((column) => !allowedColumns.includes(column))) {
           throw new Error(`Invalid columns in ${table}`);
@@ -158,6 +161,15 @@ export async function restoreBackup(
         );
       }
     }
+    await transaction.runAsync(
+      `INSERT OR IGNORE INTO app_settings (key, value) VALUES ('main_currency', 'KES')`,
+    );
+    await transaction.runAsync(
+      `INSERT OR IGNORE INTO app_settings (key, value) VALUES ('onboarding_status', 'complete')`,
+    );
+    await transaction.runAsync(
+      `INSERT OR IGNORE INTO app_settings (key, value) VALUES ('onboarding_step', '0')`,
+    );
   });
 }
 

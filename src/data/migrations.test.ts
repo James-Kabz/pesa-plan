@@ -24,15 +24,20 @@ describe('database migrations', () => {
         'debts',
         'debt_payments',
         'financial_snapshots',
+        'app_settings',
+        'expected_income',
       ]),
     );
-    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(9);
+    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(10);
     expect(raw.exec('SELECT COUNT(*) FROM accounts')[0].values[0][0]).toBe(1);
     expect(raw.exec('SELECT COUNT(*) FROM categories')[0].values[0][0]).toBe(29);
     expect(
       raw.exec(`SELECT COUNT(*) FROM pragma_table_info('savings_goals') WHERE name = 'account_id'`)[0]
         .values[0][0],
     ).toBe(1);
+    expect(
+      raw.exec(`SELECT value FROM app_settings WHERE key = 'onboarding_status'`)[0].values,
+    ).toEqual([['pending']]);
     raw.close();
   });
 
@@ -55,10 +60,13 @@ describe('database migrations', () => {
 
     await migrateDatabase(expo);
 
-    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(9);
+    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(10);
     expect(raw.exec(`SELECT name FROM accounts WHERE id = 'starter-cash'`)[0].values)
       .toEqual([['Recovered wallet']]);
     expect(raw.exec('SELECT COUNT(*) FROM categories')[0].values[0][0]).toBe(29);
+    expect(
+      raw.exec(`SELECT value FROM app_settings WHERE key = 'onboarding_status'`)[0].values,
+    ).toEqual([['complete']]);
     raw.close();
   });
 
@@ -82,7 +90,7 @@ describe('database migrations', () => {
     raw.close();
   });
 
-  it('upgrades a populated version-1 database through version 9 without data loss', async () => {
+  it('upgrades a populated version-1 database through version 10 without data loss', async () => {
     const { raw, expo } = await createTestDatabase();
     await expo.execAsync(`
       PRAGMA foreign_keys = ON;
@@ -126,7 +134,7 @@ describe('database migrations', () => {
 
     await migrateDatabase(expo);
 
-    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(9);
+    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(10);
     expect(raw.exec(`SELECT note FROM transactions WHERE id = 'legacy-transaction'`)[0].values)
       .toEqual([['Preserve me']]);
     expect(
@@ -140,6 +148,9 @@ describe('database migrations', () => {
     );
     expect(raw.exec(`SELECT type FROM accounts WHERE id = 'legacy-savings'`)[0].values)
       .toEqual([['savings']]);
+    expect(
+      raw.exec(`SELECT value FROM app_settings WHERE key = 'onboarding_status'`)[0].values,
+    ).toEqual([['complete']]);
     raw.close();
   });
 });

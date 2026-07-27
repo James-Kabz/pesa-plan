@@ -30,11 +30,11 @@ const swatches = ['#175C45', '#3177A8', '#8A5B45', '#9C5791', '#C45245', '#6558A
 
 export default function AccountEditorScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { accounts, saveAccount } = useFinance();
+  const { accounts, saveAccount, preferences } = useFinance();
   const existing = useMemo(() => accounts.find((account) => account.id === id), [accounts, id]);
   const [name, setName] = useState(existing?.name ?? '');
   const [type, setType] = useState<AccountType>(existing?.type ?? 'bank');
-  const [currency, setCurrency] = useState(existing?.currency ?? 'KES');
+  const [currency, setCurrency] = useState(existing?.currency ?? preferences.mainCurrency);
   const [openingBalance, setOpeningBalance] = useState(
     existing ? String(existing.openingBalanceMinor / 100) : '',
   );

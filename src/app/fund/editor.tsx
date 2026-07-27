@@ -11,7 +11,7 @@ const swatches = ['#175C45', '#3177A8', '#8A5B45', '#9C5791', '#C45245', '#6558A
 
 export default function FundEditorScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { sinkingFunds, addSinkingFund, contributeToFund } = useFinance();
+  const { sinkingFunds, addSinkingFund, contributeToFund, preferences } = useFinance();
   const fund = sinkingFunds.find((item) => item.id === id);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
@@ -53,7 +53,7 @@ export default function FundEditorScreen() {
         ) : null}
         <Text style={styles.label}>{fund ? 'Contribution' : 'Savings target'}</Text>
         <View style={styles.amountRow}>
-          <Text style={styles.currency}>KES</Text>
+          <Text style={styles.currency}>{preferences.mainCurrency}</Text>
           <TextInput accessibilityLabel={fund ? 'Contribution amount' : 'Savings target'} autoFocus={Boolean(fund)} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.amount} />
         </View>
         {!fund ? (

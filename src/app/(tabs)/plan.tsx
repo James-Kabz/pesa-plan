@@ -7,7 +7,7 @@ import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function PlanScreen() {
-  const { recurring, transactions, addRecurring, recordRecurring, budgets } = useFinance();
+  const { recurring, transactions, addRecurring, recordRecurring, budgets, preferences } = useFinance();
   const latest = transactions.find((item) => item.type !== 'transfer');
 
   function repeatLatest() {
@@ -19,7 +19,7 @@ export default function PlanScreen() {
     next.setMonth(next.getMonth() + 1);
     Alert.alert(
       'Repeat monthly?',
-      `${latest.note || latest.categoryName} · ${formatMoney(latest.amountMinor)}`,
+      `${latest.note || latest.categoryName} · ${formatMoney(latest.amountMinor, latest.currency)}`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -64,13 +64,16 @@ export default function PlanScreen() {
             <View style={styles.budgetTop}>
               <Text style={styles.name}>{budget.categoryName}</Text>
               <Text style={[styles.amount, remaining < 0 && { color: colors.expense }]}>
-                {formatMoney(Math.abs(remaining))} {remaining < 0 ? 'over' : 'left'}
+                {formatMoney(Math.abs(remaining), preferences.mainCurrency)} {remaining < 0 ? 'over' : 'left'}
               </Text>
             </View>
             <View style={styles.track}>
               <View style={[styles.fill, { width: `${ratio * 100}%` }]} />
             </View>
-            <Text style={styles.meta}>{formatMoney(budget.spentMinor)} of {formatMoney(budget.limitMinor)}</Text>
+            <Text style={styles.meta}>
+              {formatMoney(budget.spentMinor, preferences.mainCurrency)} of{' '}
+              {formatMoney(budget.limitMinor, preferences.mainCurrency)}
+            </Text>
           </Pressable>
         );
       })}
@@ -122,7 +125,9 @@ export default function PlanScreen() {
                   </Text>
                 </View>
                 <View style={styles.right}>
-                  <Text style={styles.amount}>{formatMoney(item.amountMinor)}</Text>
+                  <Text style={styles.amount}>
+                    {formatMoney(item.amountMinor, item.accountCurrency)}
+                  </Text>
                   <Pressable accessibilityRole="button" accessibilityLabel={`Post ${item.note || item.categoryName} now`} onPress={() => void recordRecurring(item)}>
                     <Text style={styles.post}>Post now</Text>
                   </Pressable>

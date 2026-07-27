@@ -71,6 +71,58 @@ Status: **Android Version 1.1 complete; store publication and iOS remain pending
 - [x] Store privacy disclosure draft and EAS release configuration
 - [ ] Store submissions and production release
 
+## Version 2 — Smart and simple
+
+Version 2 is focused on making the app more helpful without turning it into a
+complex accounting product. Guidance remains private, offline, deterministic,
+and under the user's control.
+
+### Stage 7 — First-time experience and user control
+
+Status: **Implementation complete; device verification pending**
+
+- [x] Guided, skippable, and resumable first-time setup
+- [x] Main currency selection with three-letter custom codes
+- [x] Cash, bank, mobile-money, and savings account setup
+- [x] Opening balances that are never counted as income
+- [x] Expected monthly income kept separate from received transactions
+- [x] Receiving account, pay day, and fixed/variable income details
+- [x] Basic current-month category budget with live unassigned amount
+- [x] Savings explained and modeled as an account transfer/allocation, not an expense
+- [x] Setup review and safe rerun from Settings without duplicate planning records
+- [x] Version 1.1 backup compatibility and no forced setup for existing users
+- [ ] Physical-device setup, migration, accessibility, and small-screen verification
+
+### Stage 8 — Helpful Home and faster entry
+
+Status: **Started**
+
+- [x] Expected-versus-recorded monthly income card
+- [ ] A focused "what needs attention" card with one clear next action
+- [ ] Faster transaction entry using recent accounts, categories, and amounts
+- [ ] Local category suggestions learned from confirmed transaction descriptions
+- [ ] Global transaction search with useful filters
+
+### Stage 9 — Local planning assistance
+
+Status: **Planned**
+
+- [ ] Confirmed recurring-pattern suggestions without automatic posting
+- [ ] Local bill, pay-day, budget, and goal reminders
+- [ ] Budget pacing based on time remaining in the month
+- [ ] Savings guidance based on real unallocated account balances
+- [ ] Clear debt-payment guidance using the chosen payoff strategy
+
+### Stage 10 — Monthly review and Version 2 release
+
+Status: **Planned**
+
+- [ ] Plain-language monthly review: income, spending, savings, debt, and changes
+- [ ] Deterministic insights that explain the numbers behind every suggestion
+- [ ] Empty-state, accessibility, font-scaling, and error-message polish
+- [ ] Migration, backup/restore, clean-install, and upgrade release gates
+- [ ] Signed Android Version 2 build and physical-device checklist
+
 ## Product principles
 
 1. Offline-first and useful without an account.
@@ -78,3 +130,4 @@ Status: **Android Version 1.1 complete; store publication and iOS remain pending
 3. Money uses integer minor units, never floating-point storage.
 4. Users own their data and can export or delete it.
 5. New scope is added only after the current stage is dependable.
+6. Smart features explain their reasoning and never move or record money automatically.

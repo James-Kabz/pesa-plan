@@ -9,7 +9,7 @@ import { colors, radius, spacing } from '@/theme';
 
 export default function BudgetEditorScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { budgets, categories, setBudget, removeBudget } = useFinance();
+  const { budgets, categories, setBudget, removeBudget, preferences } = useFinance();
   const existing = budgets.find((item) => item.id === id);
   const expenseCategories = useMemo(
     () => categories.filter((item) => item.type === 'expense'),
@@ -55,7 +55,7 @@ export default function BudgetEditorScreen() {
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
         <Text style={styles.label}>Monthly limit</Text>
         <View style={styles.amountRow}>
-          <Text style={styles.currency}>KES</Text>
+          <Text style={styles.currency}>{preferences.mainCurrency}</Text>
           <TextInput
             accessibilityLabel="Monthly budget limit"
             autoFocus

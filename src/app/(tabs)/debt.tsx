@@ -8,7 +8,7 @@ import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function DebtScreen() {
-  const { debts, debtPayments } = useFinance();
+  const { debts, debtPayments, preferences } = useFinance();
   const [strategy, setStrategy] = useState<'snowball' | 'avalanche'>('avalanche');
   const ordered = useMemo(() => orderDebts(debts, strategy), [debts, strategy]);
   const total = debts.reduce((sum, debt) => sum + debt.balanceMinor, 0);
@@ -28,8 +28,10 @@ export default function DebtScreen() {
 
       <View style={styles.summary}>
         <Text style={styles.summaryLabel}>Total remaining</Text>
-        <Text style={styles.summaryValue}>{formatMoney(total)}</Text>
-        <Text style={styles.summaryMeta}>{formatMoney(minimums)} monthly minimums</Text>
+        <Text style={styles.summaryValue}>{formatMoney(total, preferences.mainCurrency)}</Text>
+        <Text style={styles.summaryMeta}>
+          {formatMoney(minimums, preferences.mainCurrency)} monthly minimums
+        </Text>
       </View>
 
       <View style={styles.segment}>
@@ -76,12 +78,15 @@ export default function DebtScreen() {
                 <Text style={styles.name}>{debt.name}</Text>
                 <Text style={styles.apr}>{(debt.aprBasisPoints / 100).toFixed(2)}% APR</Text>
               </View>
-              <Text style={styles.balance}>{formatMoney(debt.balanceMinor)} remaining</Text>
+              <Text style={styles.balance}>
+                {formatMoney(debt.balanceMinor, preferences.mainCurrency)} remaining
+              </Text>
               <View style={styles.track}>
                 <View style={[styles.fill, { width: `${progress * 100}%` }]} />
               </View>
               <Text style={styles.meta}>
-                Minimum {formatMoney(debt.minimumPaymentMinor)} · {payoffMonths === null ? 'payment too low' : `~${payoffMonths} months`}
+                Minimum {formatMoney(debt.minimumPaymentMinor, preferences.mainCurrency)} ·{' '}
+                {payoffMonths === null ? 'payment too low' : `~${payoffMonths} months`}
               </Text>
             </View>
           </Pressable>
@@ -104,7 +109,9 @@ export default function DebtScreen() {
                   <Text style={styles.name}>{payment.debtName}</Text>
                   <Text style={styles.meta}>{new Date(payment.paidAt).toLocaleDateString('en-KE')}</Text>
                 </View>
-                <Text style={styles.paymentAmount}>−{formatMoney(payment.amountMinor)}</Text>
+                <Text style={styles.paymentAmount}>
+                  −{formatMoney(payment.amountMinor, preferences.mainCurrency)}
+                </Text>
               </View>
             ))}
           </View>

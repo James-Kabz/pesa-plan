@@ -3,13 +3,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { parseMoneyInput } from '@/domain/money';
+import { formatMoney, parseMoneyInput } from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function DebtEditorScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { debts, addDebt, payDebt } = useFinance();
+  const { debts, addDebt, payDebt, preferences } = useFinance();
   const debt = debts.find((item) => item.id === id);
   const [name, setName] = useState('');
   const [creditor, setCreditor] = useState('');
@@ -61,9 +61,11 @@ export default function DebtEditorScreen() {
         {debt ? (
           <>
             <Text style={styles.context}>Current balance</Text>
-            <Text style={styles.current}>{(debt.balanceMinor / 100).toLocaleString('en-KE', { style: 'currency', currency: 'KES' })}</Text>
+            <Text style={styles.current}>
+              {formatMoney(debt.balanceMinor, preferences.mainCurrency)}
+            </Text>
             <Text style={styles.label}>Payment amount</Text>
-            <MoneyInput value={payment} onChangeText={setPayment} autoFocus />
+            <MoneyInput value={payment} onChangeText={setPayment} currency={preferences.mainCurrency} autoFocus />
           </>
         ) : (
           <>
@@ -72,7 +74,7 @@ export default function DebtEditorScreen() {
             <Text style={styles.label}>Creditor (optional)</Text>
             <TextInput accessibilityLabel="Creditor" value={creditor} onChangeText={setCreditor} placeholder="Bank or lender" placeholderTextColor="#98A19B" style={styles.input} />
             <Text style={styles.label}>Current balance</Text>
-            <MoneyInput value={balance} onChangeText={setBalance} />
+            <MoneyInput value={balance} onChangeText={setBalance} currency={preferences.mainCurrency} />
             <View style={styles.columns}>
               <View style={styles.field}>
                 <Text style={styles.label}>APR %</Text>
@@ -93,10 +95,10 @@ export default function DebtEditorScreen() {
   );
 }
 
-function MoneyInput({ value, onChangeText, autoFocus = false }: { value: string; onChangeText: (value: string) => void; autoFocus?: boolean }) {
+function MoneyInput({ value, onChangeText, currency, autoFocus = false }: { value: string; onChangeText: (value: string) => void; currency: string; autoFocus?: boolean }) {
   return (
     <View style={styles.moneyRow}>
-      <Text style={styles.currency}>KES</Text>
+      <Text style={styles.currency}>{currency}</Text>
       <TextInput accessibilityLabel="Money amount" autoFocus={autoFocus} value={value} onChangeText={onChangeText} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.money} />
     </View>
   );

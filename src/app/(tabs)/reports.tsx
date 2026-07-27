@@ -12,6 +12,7 @@ export default function ReportsScreen() {
     financialSnapshots,
     forecast30DayNetMinor,
     debts,
+    preferences,
   } = useFinance();
   const minimumDebtPayments = debts.reduce((sum, debt) => sum + debt.minimumPaymentMinor, 0);
   const dti = debtToIncomeRatio(minimumDebtPayments, monthlySummary.incomeMinor);
@@ -25,15 +26,17 @@ export default function ReportsScreen() {
     <Screen>
       <Text style={styles.eyebrow}>KNOW YOUR NUMBERS</Text>
       <Text style={styles.title}>Reports</Text>
-      <Text style={styles.subtitle}>KES-based insight from your local ledger.</Text>
+      <Text style={styles.subtitle}>
+        {preferences.mainCurrency}-based insight from your local ledger.
+      </Text>
 
       <View style={styles.grid}>
         <Metric label="Savings rate" value={`${monthlySummary.savingsRate.toFixed(1)}%`} />
         <Metric label="Debt-to-income" value={`${dti.toFixed(1)}%`} />
-        <Metric label="Net cash flow" value={formatMoney(monthlySummary.netMinor)} />
+        <Metric label="Net cash flow" value={formatMoney(monthlySummary.netMinor, preferences.mainCurrency)} />
         <Metric
           label="Next 30 days"
-          value={formatMoney(forecast30DayNetMinor)}
+          value={formatMoney(forecast30DayNetMinor, preferences.mainCurrency)}
           negative={forecast30DayNetMinor < 0}
         />
       </View>
@@ -44,7 +47,9 @@ export default function ReportsScreen() {
           <View key={category.categoryId} style={styles.categoryRow}>
             <View style={styles.rowTop}>
               <Text style={styles.rowLabel}>{category.categoryName}</Text>
-              <Text style={styles.rowValue}>{formatMoney(category.amountMinor)}</Text>
+              <Text style={styles.rowValue}>
+                {formatMoney(category.amountMinor, preferences.mainCurrency)}
+              </Text>
             </View>
             <View style={styles.track}>
               <View
@@ -82,13 +87,13 @@ export default function ReportsScreen() {
           <View key={snapshot.month} style={styles.snapshot}>
             <Text style={styles.month}>{snapshot.month}</Text>
             <Text style={[styles.snapshotValue, snapshot.netWorthMinor < 0 && styles.negative]}>
-              {formatMoney(snapshot.netWorthMinor)}
+              {formatMoney(snapshot.netWorthMinor, snapshot.currency)}
             </Text>
           </View>
         ))}
         <Text style={styles.note}>
-          One snapshot is retained per month. Non-KES accounts are excluded because no exchange
-          rate is assumed offline.
+          One snapshot is retained per month and currency. Accounts outside your main currency
+          are excluded because no exchange rate is assumed offline.
         </Text>
       </View>
     </Screen>

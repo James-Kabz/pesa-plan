@@ -24,7 +24,9 @@ export default function RootLayout() {
           <FinanceProvider>
             <StatusBar style="dark" />
             <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
               <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="onboarding/index" options={{ gestureEnabled: false }} />
               <Stack.Screen
                 name="transaction/new"
                 options={{ presentation: 'modal', animation: 'slide_from_bottom' }}

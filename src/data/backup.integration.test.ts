@@ -51,4 +51,29 @@ describe('backup database integration', () => {
     await expect(restoreBackup(db, malformed)).rejects.toThrow('Invalid columns in accounts');
     expect(await listTransactions(db)).toHaveLength(1);
   });
+
+  it('restores a Version 1.1 backup without onboarding or currency metadata', async () => {
+    await db.runAsync(
+      `INSERT INTO financial_snapshots
+        (month, currency, account_balance_minor, debt_balance_minor, net_worth_minor, recorded_at)
+       VALUES ('2026-07', 'KES', 10000, 0, 10000, '2026-07-31')`,
+    );
+    const legacy = await createBackup(db);
+    delete legacy.tables.app_settings;
+    delete legacy.tables.expected_income;
+    legacy.tables.financial_snapshots = legacy.tables.financial_snapshots.map(
+      ({ currency: _currency, ...row }) => row,
+    );
+
+    await restoreBackup(db, legacy);
+
+    const status = await db.getFirstAsync<{ value: string }>(
+      `SELECT value FROM app_settings WHERE key = 'onboarding_status'`,
+    );
+    const snapshot = await db.getFirstAsync<{ currency: string }>(
+      `SELECT currency FROM financial_snapshots LIMIT 1`,
+    );
+    expect(status?.value).toBe('complete');
+    expect(snapshot?.currency).toBe('KES');
+  });
 });

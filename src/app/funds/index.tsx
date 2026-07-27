@@ -7,7 +7,7 @@ import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function FundsScreen() {
-  const { sinkingFunds } = useFinance();
+  const { sinkingFunds, preferences } = useFinance();
   const saved = sinkingFunds.reduce((sum, fund) => sum + fund.savedMinor, 0);
   const target = sinkingFunds.reduce((sum, fund) => sum + fund.targetMinor, 0);
 
@@ -24,8 +24,8 @@ export default function FundsScreen() {
       </View>
       <View style={styles.summary}>
         <Text style={styles.summaryLabel}>Saved for planned expenses</Text>
-        <Text style={styles.summaryValue}>{formatMoney(saved)}</Text>
-        <Text style={styles.summaryMeta}>toward {formatMoney(target)}</Text>
+        <Text style={styles.summaryValue}>{formatMoney(saved, preferences.mainCurrency)}</Text>
+        <Text style={styles.summaryMeta}>toward {formatMoney(target, preferences.mainCurrency)}</Text>
       </View>
 
       <Text style={styles.section}>Your funds</Text>
@@ -45,7 +45,10 @@ export default function FundsScreen() {
               </View>
               <View style={styles.details}>
                 <Text style={styles.name}>{fund.name}</Text>
-                <Text style={styles.meta}>{formatMoney(fund.savedMinor)} of {formatMoney(fund.targetMinor)}</Text>
+                <Text style={styles.meta}>
+                  {formatMoney(fund.savedMinor, preferences.mainCurrency)} of{' '}
+                  {formatMoney(fund.targetMinor, preferences.mainCurrency)}
+                </Text>
               </View>
               <Text style={styles.percent}>{Math.round(progress * 100)}%</Text>
             </View>

@@ -7,9 +7,9 @@ import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function AccountsScreen() {
-  const { accounts } = useFinance();
+  const { accounts, preferences } = useFinance();
   const total = accounts
-    .filter((account) => account.currency === 'KES')
+    .filter((account) => account.currency === preferences.mainCurrency)
     .reduce((sum, account) => sum + account.currentBalanceMinor, 0);
 
   return (
@@ -25,8 +25,8 @@ export default function AccountsScreen() {
       </View>
 
       <View style={styles.totalCard}>
-        <Text style={styles.totalLabel}>Combined KES balance</Text>
-        <Text style={styles.totalValue}>{formatMoney(total)}</Text>
+        <Text style={styles.totalLabel}>Combined {preferences.mainCurrency} balance</Text>
+        <Text style={styles.totalValue}>{formatMoney(total, preferences.mainCurrency)}</Text>
         <Text style={styles.totalMeta}>{accounts.length} active accounts</Text>
         <Pressable
           accessibilityRole="button"

@@ -7,9 +7,10 @@ import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function GoalsScreen() {
-  const { accounts, savingsGoals, monthlySummary } = useFinance();
+  const { accounts, savingsGoals, monthlySummary, preferences } = useFinance();
   const savingsAccounts = accounts.filter(
-    (account) => account.type === 'savings' && account.currency === 'KES',
+    (account) =>
+      account.type === 'savings' && account.currency === preferences.mainCurrency,
   );
   const emergencySaved = savingsGoals
     .filter((goal) => goal.goalType === 'emergency')
@@ -46,14 +47,18 @@ export default function GoalsScreen() {
                 <Text style={styles.accountName}>{account.name}</Text>
                 <Text style={styles.accountMeta}>Actual account balance</Text>
               </View>
-              <Text style={styles.accountTotal}>{formatMoney(account.currentBalanceMinor)}</Text>
+              <Text style={styles.accountTotal}>
+                {formatMoney(account.currentBalanceMinor, account.currency)}
+              </Text>
             </View>
             <View style={styles.allocationRow}>
-              <Text style={styles.allocationLabel}>Allocated {formatMoney(allocated)}</Text>
+              <Text style={styles.allocationLabel}>
+                Allocated {formatMoney(allocated, account.currency)}
+              </Text>
               <Text style={overallocated ? styles.overallocated : styles.unallocated}>
                 {overallocated
-                  ? `Short by ${formatMoney(allocated - account.currentBalanceMinor)}`
-                  : `Available ${formatMoney(unallocated)}`}
+                  ? `Short by ${formatMoney(allocated - account.currentBalanceMinor, account.currency)}`
+                  : `Available ${formatMoney(unallocated, account.currency)}`}
               </Text>
             </View>
           </View>
@@ -92,7 +97,10 @@ export default function GoalsScreen() {
             </View>
             <View style={styles.details}>
               <View style={styles.top}><Text style={styles.name}>{goal.name}</Text><Text style={styles.percent}>{Math.round(progress * 100)}%</Text></View>
-              <Text style={styles.meta}>{formatMoney(goal.savedMinor)} of {formatMoney(goal.targetMinor)}</Text>
+              <Text style={styles.meta}>
+                {formatMoney(goal.savedMinor, preferences.mainCurrency)} of{' '}
+                {formatMoney(goal.targetMinor, preferences.mainCurrency)}
+              </Text>
               <Text style={[styles.accountLink, !goal.accountId && styles.accountLinkWarning]}>
                 {goal.accountName ?? 'Choose a savings account'}
               </Text>

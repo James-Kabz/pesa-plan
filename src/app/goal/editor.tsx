@@ -15,11 +15,15 @@ export default function GoalEditorScreen() {
     addSavingsGoal,
     linkSavingsGoalAccount,
     contributeToSavingsGoal,
+    preferences,
   } = useFinance();
   const goal = savingsGoals.find((item) => item.id === id);
   const savingsAccounts = useMemo(
-    () => accounts.filter((account) => account.type === 'savings' && account.currency === 'KES'),
-    [accounts],
+    () => accounts.filter(
+      (account) =>
+        account.type === 'savings' && account.currency === preferences.mainCurrency,
+    ),
+    [accounts, preferences.mainCurrency],
   );
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
@@ -42,7 +46,10 @@ export default function GoalEditorScreen() {
   async function submit() {
     const amountMinor = parseMoneyInput(amount);
     if (!accountId) {
-      Alert.alert('Savings account required', 'Create or choose a KES savings account first.');
+      Alert.alert(
+        'Savings account required',
+        `Create or choose a ${preferences.mainCurrency} savings account first.`,
+      );
       return;
     }
     if (!goal && (!amountMinor || !name.trim())) {
@@ -107,7 +114,7 @@ export default function GoalEditorScreen() {
               return (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`${account.name}, ${formatMoney(account.currentBalanceMinor)} balance`}
+                  accessibilityLabel={`${account.name}, ${formatMoney(account.currentBalanceMinor, account.currency)} balance`}
                   accessibilityState={{ selected }}
                   key={account.id}
                   onPress={() => setAccountId(account.id)}
@@ -119,7 +126,7 @@ export default function GoalEditorScreen() {
                   <View style={styles.accountDetails}>
                     <Text style={styles.accountName}>{account.name}</Text>
                     <Text style={styles.accountBalance}>
-                      {formatMoney(account.currentBalanceMinor)}
+                      {formatMoney(account.currentBalanceMinor, account.currency)}
                     </Text>
                   </View>
                   {selected ? <Ionicons name="checkmark-circle" size={22} color={colors.primary} /> : null}
@@ -147,12 +154,14 @@ export default function GoalEditorScreen() {
         {selectedAccount ? (
           <View style={styles.available}>
             <Text style={styles.availableLabel}>Available to allocate</Text>
-            <Text style={styles.availableValue}>{formatMoney(availableToAllocate)}</Text>
+            <Text style={styles.availableValue}>
+              {formatMoney(availableToAllocate, selectedAccount.currency)}
+            </Text>
           </View>
         ) : null}
         <Text style={styles.label}>{goal ? 'Contribution' : 'Target amount'}</Text>
         <View style={styles.moneyRow}>
-          <Text style={styles.currency}>KES</Text>
+          <Text style={styles.currency}>{preferences.mainCurrency}</Text>
           <TextInput accessibilityLabel={goal ? 'Contribution amount' : 'Target amount'} autoFocus={Boolean(goal)} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.amount} />
         </View>
         {goal ? (

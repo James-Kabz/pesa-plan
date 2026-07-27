@@ -12,13 +12,22 @@ import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function DashboardScreen() {
-  const { accounts, monthlySummary, transactions } = useFinance();
+  const { accounts, monthlySummary, transactions, preferences, expectedIncome } = useFinance();
   const [amountsVisible, setAmountsVisible] = useState(true);
   const [greeting, setGreeting] = useState(() => getTimeGreeting());
   const privateValue = (value: string) => (amountsVisible ? value : '••••••');
   const totalBalance = accounts
-    .filter((account) => account.currency === 'KES')
+    .filter((account) => account.currency === preferences.mainCurrency)
     .reduce((sum, account) => sum + account.currentBalanceMinor, 0);
+  const expectedMonthlyIncome = expectedIncome
+    .filter((income) =>
+      accounts.some(
+        (account) =>
+          account.id === income.accountId && account.currency === preferences.mainCurrency,
+      ),
+    )
+    .reduce((sum, income) => sum + income.amountMinor, 0);
+  const incomeStillExpected = Math.max(0, expectedMonthlyIncome - monthlySummary.incomeMinor);
   const month = new Intl.DateTimeFormat('en-KE', { month: 'long', year: 'numeric' }).format(
     new Date(),
   );
@@ -47,7 +56,7 @@ export default function DashboardScreen() {
         style={styles.balanceCard}
       >
         <View style={styles.balanceTop}>
-          <Text style={styles.balanceLabel}>KES account balance</Text>
+          <Text style={styles.balanceLabel}>{preferences.mainCurrency} account balance</Text>
           <View style={styles.balanceControls}>
             <Text style={styles.month}>{month}</Text>
             <Pressable
@@ -66,23 +75,29 @@ export default function DashboardScreen() {
           </View>
         </View>
         <Text
-          accessibilityLabel={amountsVisible ? formatMoney(totalBalance) : 'Balance hidden'}
+          accessibilityLabel={
+            amountsVisible ? formatMoney(totalBalance, preferences.mainCurrency) : 'Balance hidden'
+          }
           style={styles.balance}
         >
-          {privateValue(formatMoney(totalBalance))}
+          {privateValue(formatMoney(totalBalance, preferences.mainCurrency))}
         </Text>
         <View style={styles.summaryRow}>
           <View>
             <Text style={styles.cardMeta}>Income</Text>
             <Text style={styles.cardValue}>
-              {privateValue(`+${formatMoney(monthlySummary.incomeMinor)}`)}
+              {privateValue(
+                `+${formatMoney(monthlySummary.incomeMinor, preferences.mainCurrency)}`,
+              )}
             </Text>
           </View>
           <View style={styles.divider} />
           <View>
             <Text style={styles.cardMeta}>Spent</Text>
             <Text style={styles.cardValue}>
-              {privateValue(`−${formatMoney(monthlySummary.expenseMinor)}`)}
+              {privateValue(
+                `−${formatMoney(monthlySummary.expenseMinor, preferences.mainCurrency)}`,
+              )}
             </Text>
           </View>
           <View style={styles.divider} />
@@ -94,6 +109,26 @@ export default function DashboardScreen() {
           </View>
         </View>
       </LinearGradient>
+
+      {expectedMonthlyIncome ? (
+        <View style={styles.planCard}>
+          <View style={styles.planIcon}>
+            <Ionicons name="calendar-outline" size={21} color={colors.primary} />
+          </View>
+          <View style={styles.planText}>
+            <Text style={styles.planTitle}>Monthly income plan</Text>
+            <Text style={styles.planMeta}>
+              {privateValue(
+                `${formatMoney(monthlySummary.incomeMinor, preferences.mainCurrency)} recorded`,
+              )}
+              {' · '}
+              {privateValue(
+                `${formatMoney(incomeStillExpected, preferences.mainCurrency)} still expected`,
+              )}
+            </Text>
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.quickActions}>
         <QuickAction
@@ -257,6 +292,28 @@ const styles = StyleSheet.create({
     height: 30,
     backgroundColor: 'rgba(255,255,255,0.13)',
   },
+  planCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginTop: spacing.lg,
+  },
+  planIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primarySoft,
+  },
+  planText: { flex: 1 },
+  planTitle: { color: colors.ink, fontSize: 13, fontWeight: '800' },
+  planMeta: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 3 },
   quickActions: {
     flexDirection: 'row',
     gap: spacing.sm,

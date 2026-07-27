@@ -21,6 +21,10 @@ import type {
   FinancialSnapshot,
   TransactionKind,
   TransactionType,
+  AppPreferences,
+  ExpectedIncome,
+  OnboardingDraft,
+  OnboardingCompletion,
 } from '@/domain/types';
 import { withDatabaseTransaction } from './databaseTransaction';
 
@@ -206,9 +210,9 @@ export async function saveAccount(db: SQLiteDatabase, account: AccountInput): Pr
     );
     if (
       (linkedGoals?.count ?? 0) > 0 &&
-      (account.type !== 'savings' || account.currency !== 'KES')
+      account.type !== 'savings'
     ) {
-      throw new Error('An account linked to savings goals must remain a KES savings account');
+      throw new Error('An account linked to savings goals must remain a savings account');
     }
     await db.runAsync(
       `UPDATE accounts
@@ -324,7 +328,11 @@ export async function postRecurring(db: SQLiteDatabase, schedule: RecurringTrans
   });
 }
 
-export async function listBudgets(db: SQLiteDatabase, month: string): Promise<MonthlyBudget[]> {
+export async function listBudgets(
+  db: SQLiteDatabase,
+  month: string,
+  currency = 'KES',
+): Promise<MonthlyBudget[]> {
   return db.getAllAsync<MonthlyBudget>(`
     SELECT b.id, b.category_id AS categoryId, c.name AS categoryName,
       c.icon AS categoryIcon, b.limit_minor AS limitMinor, b.month,
@@ -332,9 +340,9 @@ export async function listBudgets(db: SQLiteDatabase, month: string): Promise<Mo
     FROM monthly_budgets b JOIN categories c ON c.id = b.category_id
     LEFT JOIN transactions t ON t.category_id = b.category_id AND t.type = 'expense'
       AND substr(t.occurred_at, 1, 7) = b.month
-      AND t.account_id IN (SELECT id FROM accounts WHERE currency = 'KES')
+      AND t.account_id IN (SELECT id FROM accounts WHERE currency = ?)
     WHERE b.month = ? GROUP BY b.id ORDER BY c.name
-  `, month);
+  `, currency, month);
 }
 
 export async function saveBudget(db: SQLiteDatabase, categoryId: string, month: string, limitMinor: number) {
@@ -424,11 +432,11 @@ export async function createSavingsGoal(
   await withDatabaseTransaction(db, async (transaction) => {
     const account = await transaction.getFirstAsync<{ id: string }>(
       `SELECT id FROM accounts
-       WHERE id = ? AND type = 'savings' AND currency = 'KES'`,
+       WHERE id = ? AND type = 'savings'`,
       input.accountId,
     );
     if (!account) {
-      throw new Error('Choose a KES savings account for this goal');
+      throw new Error('Choose a savings account for this goal');
     }
     await transaction.runAsync(
       `INSERT INTO savings_goals
@@ -470,10 +478,10 @@ export async function assignSavingsGoalAccount(
           SELECT SUM(tr.amount_minor) FROM transfers tr WHERE tr.from_account_id = a.id
         ), 0) AS balance_minor
        FROM accounts a
-       WHERE a.id = ? AND a.type = 'savings' AND a.currency = 'KES'`,
+       WHERE a.id = ? AND a.type = 'savings'`,
       accountId,
     );
-    if (!goal || !account) throw new Error('Choose a valid KES savings account');
+    if (!goal || !account) throw new Error('Choose a valid savings account');
 
     const allocation = await transaction.getFirstAsync<{ allocated_minor: number }>(
       `SELECT COALESCE(SUM(saved_minor), 0) AS allocated_minor
@@ -633,46 +641,53 @@ export async function listAllDebtPayments(db: SQLiteDatabase): Promise<DebtPayme
 export async function listCategorySpending(
   db: SQLiteDatabase,
   month: string,
+  currency = 'KES',
 ): Promise<CategorySpend[]> {
   return db.getAllAsync<CategorySpend>(
     `SELECT c.id AS categoryId, c.name AS categoryName, c.icon AS categoryIcon,
       SUM(t.amount_minor) AS amountMinor
      FROM transactions t JOIN categories c ON c.id = t.category_id
      JOIN accounts a ON a.id = t.account_id
-     WHERE t.type = 'expense' AND a.currency = 'KES' AND substr(t.occurred_at, 1, 7) = ?
+     WHERE t.type = 'expense' AND a.currency = ? AND substr(t.occurred_at, 1, 7) = ?
      GROUP BY c.id ORDER BY amountMinor DESC`,
+    currency,
     month,
   );
 }
 
-export async function listMonthlyTrends(db: SQLiteDatabase): Promise<MonthlyTrend[]> {
+export async function listMonthlyTrends(
+  db: SQLiteDatabase,
+  currency = 'KES',
+): Promise<MonthlyTrend[]> {
   return db.getAllAsync<MonthlyTrend>(`
     SELECT substr(t.occurred_at, 1, 7) AS month,
       SUM(CASE WHEN t.type = 'income' THEN t.amount_minor ELSE 0 END) AS incomeMinor,
       SUM(CASE WHEN t.type = 'expense' THEN t.amount_minor ELSE 0 END) AS expenseMinor
     FROM transactions t JOIN accounts a ON a.id = t.account_id
-    WHERE a.currency = 'KES'
+    WHERE a.currency = ?
     GROUP BY substr(t.occurred_at, 1, 7)
     ORDER BY month DESC LIMIT 6
-  `);
+  `, currency);
 }
 
 export async function recordFinancialSnapshot(
   db: SQLiteDatabase,
   month: string,
+  currency: string,
   accountBalanceMinor: number,
   debtBalanceMinor: number,
 ): Promise<void> {
   await db.runAsync(
     `INSERT INTO financial_snapshots
-      (month, account_balance_minor, debt_balance_minor, net_worth_minor, recorded_at)
-     VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(month) DO UPDATE SET
+      (month, currency, account_balance_minor, debt_balance_minor, net_worth_minor, recorded_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(month, currency) DO UPDATE SET
        account_balance_minor = excluded.account_balance_minor,
        debt_balance_minor = excluded.debt_balance_minor,
        net_worth_minor = excluded.net_worth_minor,
        recorded_at = excluded.recorded_at`,
     month,
+    currency,
     accountBalanceMinor,
     debtBalanceMinor,
     accountBalanceMinor - debtBalanceMinor,
@@ -682,11 +697,176 @@ export async function recordFinancialSnapshot(
 
 export async function listFinancialSnapshots(
   db: SQLiteDatabase,
+  currency = 'KES',
 ): Promise<FinancialSnapshot[]> {
   return db.getAllAsync<FinancialSnapshot>(`
-    SELECT month, net_worth_minor AS netWorthMinor,
+    SELECT month, currency, net_worth_minor AS netWorthMinor,
       account_balance_minor AS accountBalanceMinor,
       debt_balance_minor AS debtBalanceMinor
-    FROM financial_snapshots ORDER BY month
+    FROM financial_snapshots WHERE currency = ? ORDER BY month
+  `, currency);
+}
+
+const DEFAULT_PREFERENCES: AppPreferences = {
+  mainCurrency: 'KES',
+  onboardingStatus: 'complete',
+  onboardingStep: 0,
+  onboardingDraft: null,
+};
+
+export async function getAppPreferences(db: SQLiteDatabase): Promise<AppPreferences> {
+  const rows = await db.getAllAsync<{ key: string; value: string }>(
+    `SELECT key, value FROM app_settings
+     WHERE key IN ('main_currency', 'onboarding_status', 'onboarding_step', 'onboarding_draft')`,
+  );
+  const settings = Object.fromEntries(rows.map((row) => [row.key, row.value]));
+  let draft: OnboardingDraft | null = null;
+  if (settings.onboarding_draft) {
+    try {
+      draft = JSON.parse(settings.onboarding_draft) as OnboardingDraft;
+    } catch {
+      draft = null;
+    }
+  }
+  const status = settings.onboarding_status;
+  return {
+    mainCurrency: /^[A-Z]{3}$/.test(settings.main_currency ?? '')
+      ? settings.main_currency
+      : DEFAULT_PREFERENCES.mainCurrency,
+    onboardingStatus:
+      status === 'pending' || status === 'deferred' || status === 'complete'
+        ? status
+        : DEFAULT_PREFERENCES.onboardingStatus,
+    onboardingStep: Math.max(0, Math.min(5, Number(settings.onboarding_step) || 0)),
+    onboardingDraft: draft,
+  };
+}
+
+async function setSetting(db: SQLiteDatabase, key: string, value: string): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO app_settings (key, value) VALUES (?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    key,
+    value,
+  );
+}
+
+export async function saveOnboardingProgress(
+  db: SQLiteDatabase,
+  step: number,
+  draft: OnboardingDraft,
+): Promise<void> {
+  await withDatabaseTransaction(db, async (transaction) => {
+    await transaction.runAsync(
+      `INSERT INTO app_settings (key, value) VALUES ('onboarding_status', 'pending')
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    );
+    await transaction.runAsync(
+      `INSERT INTO app_settings (key, value) VALUES ('onboarding_step', ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      String(step),
+    );
+    await transaction.runAsync(
+      `INSERT INTO app_settings (key, value) VALUES ('onboarding_draft', ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      JSON.stringify(draft),
+    );
+  });
+}
+
+export async function deferOnboarding(db: SQLiteDatabase): Promise<void> {
+  await setSetting(db, 'onboarding_status', 'deferred');
+}
+
+export async function restartOnboarding(db: SQLiteDatabase): Promise<void> {
+  await setSetting(db, 'onboarding_status', 'pending');
+  await setSetting(db, 'onboarding_step', '0');
+}
+
+export async function listExpectedIncome(db: SQLiteDatabase): Promise<ExpectedIncome[]> {
+  return db.getAllAsync<ExpectedIncome>(`
+    SELECT e.id, e.name, e.amount_minor AS amountMinor, e.account_id AS accountId,
+      a.name AS accountName, e.pay_day AS payDay,
+      e.amount_is_estimate = 1 AS amountIsEstimate, e.active = 1 AS active
+    FROM expected_income e
+    JOIN accounts a ON a.id = e.account_id
+    WHERE e.active = 1
+    ORDER BY e.pay_day, e.created_at
   `);
+}
+
+export async function completeOnboarding(
+  db: SQLiteDatabase,
+  input: OnboardingCompletion,
+  month: string,
+): Promise<void> {
+  await withDatabaseTransaction(db, async (transaction) => {
+    const currency = input.draft.mainCurrency.trim().toUpperCase();
+    await transaction.runAsync(
+      `INSERT INTO app_settings (key, value) VALUES ('main_currency', ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      currency,
+    );
+
+    if (
+      input.expectedIncomeMinor &&
+      input.payDay &&
+      input.draft.incomeName.trim() &&
+      input.draft.incomeAccountId
+    ) {
+      await transaction.runAsync(
+        `INSERT INTO expected_income
+          (id, name, amount_minor, account_id, pay_day, amount_is_estimate, active, created_at)
+         VALUES ('primary-expected-income', ?, ?, ?, ?, ?, 1, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           name = excluded.name,
+           amount_minor = excluded.amount_minor,
+           account_id = excluded.account_id,
+           pay_day = excluded.pay_day,
+           amount_is_estimate = excluded.amount_is_estimate,
+           active = 1`,
+        input.draft.incomeName.trim(),
+        input.expectedIncomeMinor,
+        input.draft.incomeAccountId,
+        input.payDay,
+        input.draft.incomeIsEstimate ? 1 : 0,
+        new Date().toISOString(),
+      );
+    } else {
+      await transaction.runAsync(
+        `UPDATE expected_income SET active = 0 WHERE id = 'primary-expected-income'`,
+      );
+    }
+
+    for (const categoryId of Object.keys(input.draft.budgetAmounts)) {
+      const limitMinor = input.budgetsMinor[categoryId];
+      if (limitMinor) {
+        await transaction.runAsync(
+          `INSERT INTO monthly_budgets (id, category_id, month, limit_minor)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(category_id, month) DO UPDATE SET limit_minor = excluded.limit_minor`,
+          `${categoryId}-${month}`,
+          categoryId,
+          month,
+          limitMinor,
+        );
+      } else {
+        await transaction.runAsync(
+          `DELETE FROM monthly_budgets WHERE category_id = ? AND month = ?`,
+          categoryId,
+          month,
+        );
+      }
+    }
+
+    await transaction.runAsync(
+      `INSERT INTO app_settings (key, value) VALUES ('onboarding_status', 'complete')
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    );
+    await transaction.runAsync(
+      `INSERT INTO app_settings (key, value) VALUES ('onboarding_step', '0')
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    );
+    await transaction.runAsync(`DELETE FROM app_settings WHERE key = 'onboarding_draft'`);
+  });
 }

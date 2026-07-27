@@ -22,6 +22,10 @@ import type {
   CategorySpend,
   MonthlyTrend,
   FinancialSnapshot,
+  AppPreferences,
+  ExpectedIncome,
+  OnboardingDraft,
+  OnboardingCompletion,
 } from '@/domain/types';
 import {
   createTransaction,
@@ -52,6 +56,12 @@ import {
   listMonthlyTrends,
   recordFinancialSnapshot,
   listFinancialSnapshots,
+  getAppPreferences,
+  listExpectedIncome,
+  saveOnboardingProgress,
+  deferOnboarding,
+  restartOnboarding,
+  completeOnboarding,
 } from '@/data/repository';
 
 interface FinanceContextValue {
@@ -87,6 +97,12 @@ interface FinanceContextValue {
   monthlyTrends: MonthlyTrend[];
   financialSnapshots: FinancialSnapshot[];
   forecast30DayNetMinor: number;
+  preferences: AppPreferences;
+  expectedIncome: ExpectedIncome[];
+  saveSetupProgress: (step: number, draft: OnboardingDraft) => Promise<void>;
+  deferSetup: () => Promise<void>;
+  restartSetup: () => Promise<void>;
+  completeSetup: (input: OnboardingCompletion) => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
@@ -107,23 +123,34 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [categorySpending, setCategorySpending] = useState<CategorySpend[]>([]);
   const [monthlyTrends, setMonthlyTrends] = useState<MonthlyTrend[]>([]);
   const [financialSnapshots, setFinancialSnapshots] = useState<FinancialSnapshot[]>([]);
+  const [preferences, setPreferences] = useState<AppPreferences>({
+    mainCurrency: 'KES',
+    onboardingStatus: 'complete',
+    onboardingStep: 0,
+    onboardingDraft: null,
+  });
+  const [expectedIncome, setExpectedIncome] = useState<ExpectedIncome[]>([]);
   const monthKey = new Date().toISOString().slice(0, 7);
 
   const refresh = useCallback(async () => {
-    const [nextAccounts, nextCategories, nextTransactions, nextMonthlyTransactions, nextRecurring, nextBudgets, nextFunds, nextGoals, nextDebts, nextDebtPayments] =
+    const nextPreferences = await getAppPreferences(db);
+    const currency = nextPreferences.mainCurrency;
+    const [nextAccounts, nextCategories, nextTransactions, nextMonthlyTransactions, nextRecurring, nextBudgets, nextFunds, nextGoals, nextDebts, nextDebtPayments, nextExpectedIncome] =
       await Promise.all([
         listAccounts(db),
         listCategories(db),
         listTransactions(db),
         listTransactions(db, currentMonthRange()),
         listRecurring(db),
-        listBudgets(db, monthKey),
+        listBudgets(db, monthKey, currency),
         listSinkingFunds(db),
         listSavingsGoals(db),
         listDebts(db),
         listAllDebtPayments(db),
+        listExpectedIncome(db),
       ]);
 
+    setPreferences(nextPreferences);
     setAccounts(nextAccounts);
     setCategories(nextCategories);
     setTransactions(nextTransactions);
@@ -134,15 +161,16 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     setSavingsGoals(nextGoals);
     setDebts(nextDebts);
     setDebtPayments(nextDebtPayments);
-    const kesAccounts = nextAccounts
-      .filter((account) => account.currency === 'KES')
+    setExpectedIncome(nextExpectedIncome);
+    const mainCurrencyAccounts = nextAccounts
+      .filter((account) => account.currency === currency)
       .reduce((sum, account) => sum + account.currentBalanceMinor, 0);
     const debtBalance = nextDebts.reduce((sum, debt) => sum + debt.balanceMinor, 0);
-    await recordFinancialSnapshot(db, monthKey, kesAccounts, debtBalance);
+    await recordFinancialSnapshot(db, monthKey, currency, mainCurrencyAccounts, debtBalance);
     const [nextCategorySpending, nextMonthlyTrends, nextSnapshots] = await Promise.all([
-      listCategorySpending(db, monthKey),
-      listMonthlyTrends(db),
-      listFinancialSnapshots(db),
+      listCategorySpending(db, monthKey, currency),
+      listMonthlyTrends(db, currency),
+      listFinancialSnapshots(db, currency),
     ]);
     setCategorySpending(nextCategorySpending);
     setMonthlyTrends(nextMonthlyTrends);
@@ -238,14 +266,41 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     await refresh();
   }, [db, refresh]);
 
+  const saveSetupProgress = useCallback(async (step: number, draft: OnboardingDraft) => {
+    await saveOnboardingProgress(db, step, draft);
+    setPreferences((current) => ({
+      ...current,
+      onboardingStatus: 'pending',
+      onboardingStep: step,
+      onboardingDraft: draft,
+    }));
+  }, [db]);
+
+  const deferSetup = useCallback(async () => {
+    await deferOnboarding(db);
+    setPreferences((current) => ({ ...current, onboardingStatus: 'deferred' }));
+  }, [db]);
+
+  const restartSetup = useCallback(async () => {
+    await restartOnboarding(db);
+    setPreferences((current) => ({ ...current, onboardingStatus: 'pending', onboardingStep: 0 }));
+  }, [db]);
+
+  const completeSetup = useCallback(async (input: OnboardingCompletion) => {
+    await completeOnboarding(db, input, monthKey);
+    await refresh();
+  }, [db, monthKey, refresh]);
+
   const monthlySummary = useMemo(
-    () => summarizeTransactions(monthlyTransactions.filter((item) => item.currency === 'KES')),
-    [monthlyTransactions],
+    () => summarizeTransactions(
+      monthlyTransactions.filter((item) => item.currency === preferences.mainCurrency),
+    ),
+    [monthlyTransactions, preferences.mainCurrency],
   );
 
   const forecast30DayNetMinor = useMemo(
-    () => forecastRecurringNet(recurring),
-    [recurring],
+    () => forecastRecurringNet(recurring, 30, new Date(), preferences.mainCurrency),
+    [recurring, preferences.mainCurrency],
   );
 
   const value = useMemo(
@@ -282,6 +337,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       monthlyTrends,
       financialSnapshots,
       forecast30DayNetMinor,
+      preferences,
+      expectedIncome,
+      saveSetupProgress,
+      deferSetup,
+      restartSetup,
+      completeSetup,
     }),
     [
       accounts,
@@ -316,6 +377,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       monthlyTrends,
       financialSnapshots,
       forecast30DayNetMinor,
+      preferences,
+      expectedIncome,
+      saveSetupProgress,
+      deferSetup,
+      restartSetup,
+      completeSetup,
     ],
   );
 

@@ -169,7 +169,45 @@ export interface MonthlyTrend {
 
 export interface FinancialSnapshot {
   month: string;
+  currency: string;
   netWorthMinor: number;
   accountBalanceMinor: number;
   debtBalanceMinor: number;
+}
+
+export type OnboardingStatus = 'pending' | 'deferred' | 'complete';
+
+export interface AppPreferences {
+  mainCurrency: string;
+  onboardingStatus: OnboardingStatus;
+  onboardingStep: number;
+  onboardingDraft: OnboardingDraft | null;
+}
+
+export interface ExpectedIncome {
+  id: string;
+  name: string;
+  amountMinor: number;
+  accountId: string;
+  accountName: string;
+  payDay: number;
+  amountIsEstimate: boolean;
+  active: boolean;
+}
+
+export interface OnboardingDraft {
+  mainCurrency: string;
+  incomeName: string;
+  incomeAmount: string;
+  incomeAccountId: string;
+  incomePayDay: string;
+  incomeIsEstimate: boolean;
+  budgetAmounts: Record<string, string>;
+}
+
+export interface OnboardingCompletion {
+  draft: OnboardingDraft;
+  expectedIncomeMinor: number | null;
+  payDay: number | null;
+  budgetsMinor: Record<string, number>;
 }

@@ -20,7 +20,7 @@ import { colors, radius, spacing } from '@/theme';
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
-  const { transactions, refresh } = useFinance();
+  const { transactions, refresh, preferences, restartSetup } = useFinance();
   const { securityAvailable, hasPin, setPin, removePin, lock } = useSecurity();
   const [pin, setPinValue] = useState('');
   const [busy, setBusy] = useState(false);
@@ -116,16 +116,36 @@ export default function SettingsScreen() {
     );
   }
 
+  async function openGuidedSetup() {
+    await restartSetup();
+    router.push('/onboarding');
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Go back" style={styles.headerButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color={colors.ink} />
         </Pressable>
-        <Text style={styles.headerTitle}>Privacy & data</Text>
+        <Text style={styles.headerTitle}>Settings</Text>
         <View style={styles.headerButton} />
       </View>
       <View style={styles.content}>
+        <Text style={styles.section}>Personalize</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Guided financial setup</Text>
+          <Text style={styles.cardText}>
+            {preferences.onboardingStatus === 'deferred'
+              ? 'Continue setting up your currency, accounts, expected income, and starter budget.'
+              : `Review your ${preferences.mainCurrency} setup, accounts, expected income, and starter budget.`}
+          </Text>
+          <Action
+            label={preferences.onboardingStatus === 'deferred' ? 'Continue guided setup' : 'Run guided setup again'}
+            icon="sparkles-outline"
+            onPress={() => void openGuidedSetup()}
+          />
+        </View>
+
         <Text style={styles.section}>App lock</Text>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
