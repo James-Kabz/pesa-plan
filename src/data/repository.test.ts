@@ -30,6 +30,7 @@ import {
   saveAccount,
   saveBudget,
   saveCustomCategoryBudget,
+  saveReminderPreference,
   completeOnboarding,
   getAppPreferences,
   listExpectedIncome,
@@ -372,5 +373,24 @@ describe('finance repository integration', () => {
     expect(await listExpectedIncome(db)).toHaveLength(1);
     expect(await listBudgets(db, '2026-07', 'USD')).toHaveLength(2);
     expect(await listTransactions(db)).toHaveLength(0);
+  });
+
+  it('persists independent local reminder controls with safe defaults', async () => {
+    expect(await getAppPreferences(db)).toMatchObject({
+      remindersEnabled: false,
+      remindSchedules: true,
+      remindPaydays: true,
+      remindWeeklyReview: true,
+    });
+
+    await saveReminderPreference(db, 'remindersEnabled', true);
+    await saveReminderPreference(db, 'remindPaydays', false);
+
+    expect(await getAppPreferences(db)).toMatchObject({
+      remindersEnabled: true,
+      remindSchedules: true,
+      remindPaydays: false,
+      remindWeeklyReview: true,
+    });
   });
 });

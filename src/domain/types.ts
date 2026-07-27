@@ -182,7 +182,17 @@ export interface AppPreferences {
   onboardingStatus: OnboardingStatus;
   onboardingStep: number;
   onboardingDraft: OnboardingDraft | null;
+  remindersEnabled: boolean;
+  remindSchedules: boolean;
+  remindPaydays: boolean;
+  remindWeeklyReview: boolean;
 }
+
+export type ReminderPreferenceKey =
+  | 'remindersEnabled'
+  | 'remindSchedules'
+  | 'remindPaydays'
+  | 'remindWeeklyReview';
 
 export interface ExpectedIncome {
   id: string;

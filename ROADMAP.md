@@ -121,7 +121,9 @@ Status: **Started**
 - [x] Strict weekly and monthly detection with amount-stability and duplicate safeguards
 - [x] Explainable on-device evidence, future due-date calculation, and explicit approval
 - [x] Confirmed schedule deletion with a choice to keep or remove linked posted transactions
-- [ ] Local bill, pay-day, budget, and goal reminders
+- [x] Opt-in local schedule and pay-day reminders with no automatic posting
+- [x] One low-noise weekly budget and savings-goal check-in
+- [x] Independent reminder controls, private lock-screen copy, and a test action
 - [ ] Budget pacing based on time remaining in the month
 - [ ] Savings guidance based on real unallocated account balances
 - [ ] Clear debt-payment guidance using the chosen payoff strategy

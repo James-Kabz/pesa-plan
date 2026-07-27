@@ -22,6 +22,7 @@ import type {
   TransactionKind,
   TransactionType,
   AppPreferences,
+  ReminderPreferenceKey,
   ExpectedIncome,
   OnboardingDraft,
   OnboardingCompletion,
@@ -766,12 +767,25 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   onboardingStatus: 'complete',
   onboardingStep: 0,
   onboardingDraft: null,
+  remindersEnabled: false,
+  remindSchedules: true,
+  remindPaydays: true,
+  remindWeeklyReview: true,
 };
 
 export async function getAppPreferences(db: SQLiteDatabase): Promise<AppPreferences> {
   const rows = await db.getAllAsync<{ key: string; value: string }>(
     `SELECT key, value FROM app_settings
-     WHERE key IN ('main_currency', 'onboarding_status', 'onboarding_step', 'onboarding_draft')`,
+     WHERE key IN (
+       'main_currency',
+       'onboarding_status',
+       'onboarding_step',
+       'onboarding_draft',
+       'reminders_enabled',
+       'remind_schedules',
+       'remind_paydays',
+       'remind_weekly_review'
+     )`,
   );
   const settings = Object.fromEntries(rows.map((row) => [row.key, row.value]));
   let draft: OnboardingDraft | null = null;
@@ -793,6 +807,10 @@ export async function getAppPreferences(db: SQLiteDatabase): Promise<AppPreferen
         : DEFAULT_PREFERENCES.onboardingStatus,
     onboardingStep: Math.max(0, Math.min(5, Number(settings.onboarding_step) || 0)),
     onboardingDraft: draft,
+    remindersEnabled: settings.reminders_enabled === 'true',
+    remindSchedules: settings.remind_schedules !== 'false',
+    remindPaydays: settings.remind_paydays !== 'false',
+    remindWeeklyReview: settings.remind_weekly_review !== 'false',
   };
 }
 
@@ -803,6 +821,21 @@ async function setSetting(db: SQLiteDatabase, key: string, value: string): Promi
     key,
     value,
   );
+}
+
+const REMINDER_SETTING_KEYS: Record<ReminderPreferenceKey, string> = {
+  remindersEnabled: 'reminders_enabled',
+  remindSchedules: 'remind_schedules',
+  remindPaydays: 'remind_paydays',
+  remindWeeklyReview: 'remind_weekly_review',
+};
+
+export async function saveReminderPreference(
+  db: SQLiteDatabase,
+  key: ReminderPreferenceKey,
+  value: boolean,
+): Promise<void> {
+  await setSetting(db, REMINDER_SETTING_KEYS[key], String(value));
 }
 
 export async function saveOnboardingProgress(

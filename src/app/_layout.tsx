@@ -7,6 +7,7 @@ import { FinanceProvider } from '@/providers/FinanceProvider';
 import { migrateDatabase } from '@/data/migrations';
 import { colors } from '@/theme';
 import { SecurityProvider } from '@/providers/SecurityProvider';
+import { ReminderCoordinator } from '@/components/ReminderCoordinator';
 
 function LoadingDatabase() {
   return (
@@ -22,6 +23,7 @@ export default function RootLayout() {
       <SecurityProvider>
         <SQLiteProvider databaseName="pesa-plan.db" onInit={migrateDatabase} useSuspense>
           <FinanceProvider>
+            <ReminderCoordinator />
             <StatusBar style="dark" />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />

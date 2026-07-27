@@ -26,6 +26,7 @@ import type {
   ExpectedIncome,
   OnboardingDraft,
   OnboardingCompletion,
+  ReminderPreferenceKey,
 } from '@/domain/types';
 import {
   createTransaction,
@@ -64,6 +65,7 @@ import {
   deferOnboarding,
   restartOnboarding,
   completeOnboarding,
+  saveReminderPreference,
 } from '@/data/repository';
 
 interface FinanceContextValue {
@@ -110,6 +112,7 @@ interface FinanceContextValue {
   deferSetup: () => Promise<void>;
   restartSetup: () => Promise<void>;
   completeSetup: (input: OnboardingCompletion) => Promise<void>;
+  setReminderPreference: (key: ReminderPreferenceKey, value: boolean) => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
@@ -135,6 +138,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     onboardingStatus: 'complete',
     onboardingStep: 0,
     onboardingDraft: null,
+    remindersEnabled: false,
+    remindSchedules: true,
+    remindPaydays: true,
+    remindWeeklyReview: true,
   });
   const [expectedIncome, setExpectedIncome] = useState<ExpectedIncome[]>([]);
   const monthKey = new Date().toISOString().slice(0, 7);
@@ -312,6 +319,14 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     await refresh();
   }, [db, monthKey, refresh]);
 
+  const setReminderPreference = useCallback(
+    async (key: ReminderPreferenceKey, enabled: boolean) => {
+      await saveReminderPreference(db, key, enabled);
+      setPreferences((current) => ({ ...current, [key]: enabled }));
+    },
+    [db],
+  );
+
   const monthlySummary = useMemo(
     () => summarizeTransactions(
       monthlyTransactions.filter((item) => item.currency === preferences.mainCurrency),
@@ -365,6 +380,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       deferSetup,
       restartSetup,
       completeSetup,
+      setReminderPreference,
     }),
     [
       accounts,
@@ -406,6 +422,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       deferSetup,
       restartSetup,
       completeSetup,
+      setReminderPreference,
     ],
   );
 

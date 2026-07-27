@@ -15,7 +15,9 @@ last-used account/category defaults, and a save-and-add-another workflow. Smart
 categorization privately learns from confirmed descriptions, explains strong
 matches, and waits for the user to accept every suggestion. Recurring assistance
 detects strong weekly or monthly patterns on-device and proposes reminder
-schedules without automatically recording transactions.
+schedules without automatically recording transactions. Opt-in local
+notifications add private schedule, payday, and combined weekly budget/savings
+check-ins; notification previews never expose financial amounts.
 Version 1.1 includes:
 
 - an Expo + React Native + TypeScript foundation;
