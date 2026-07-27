@@ -1,7 +1,18 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { parseMoneyInput } from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
@@ -18,8 +29,49 @@ export default function BudgetEditorScreen() {
   const [categoryId, setCategoryId] = useState(existing?.categoryId ?? expenseCategories[0]?.id ?? '');
   const [amount, setAmount] = useState(existing ? String(existing.limitMinor / 100) : '');
   const [customCategoryName, setCustomCategoryName] = useState('');
+  const [customCategoryDraft, setCustomCategoryDraft] = useState('');
+  const [customCategoryError, setCustomCategoryError] = useState('');
+  const [customCategoryModalVisible, setCustomCategoryModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const isNamingOther = !existing && categoryId === 'other-expense';
+
+  function selectCategory(nextCategoryId: string) {
+    if (!existing && nextCategoryId === 'other-expense') {
+      setCustomCategoryDraft(customCategoryName);
+      setCustomCategoryError('');
+      setCustomCategoryModalVisible(true);
+      return;
+    }
+    setCategoryId(nextCategoryId);
+  }
+
+  function closeCustomCategoryModal() {
+    setCustomCategoryModalVisible(false);
+    setCustomCategoryError('');
+  }
+
+  function confirmCustomCategory() {
+    const normalizedName = customCategoryDraft.trim().replace(/\s+/g, ' ');
+    if (normalizedName.length < 2) {
+      setCustomCategoryError('Enter a name with at least two characters.');
+      return;
+    }
+    const matchingCategory = expenseCategories.find(
+      (category) =>
+        category.id !== 'other-expense' &&
+        category.name.toLocaleLowerCase() === normalizedName.toLocaleLowerCase(),
+    );
+    if (matchingCategory) {
+      setCustomCategoryError(
+        `“${matchingCategory.name}” already exists. Cancel and select it from the list.`,
+      );
+      return;
+    }
+    setCustomCategoryName(normalizedName);
+    setCategoryId('other-expense');
+    setCustomCategoryModalVisible(false);
+    setCustomCategoryError('');
+  }
 
   async function submit() {
     const limitMinor = parseMoneyInput(amount);
@@ -102,7 +154,7 @@ export default function BudgetEditorScreen() {
                 accessibilityState={{ selected, disabled: Boolean(existing) }}
                 key={category.id}
                 disabled={Boolean(existing)}
-                onPress={() => setCategoryId(category.id)}
+                onPress={() => selectCategory(category.id)}
                 style={[styles.category, selected && styles.selected]}
               >
                 <Ionicons
@@ -111,32 +163,14 @@ export default function BudgetEditorScreen() {
                   color={selected ? colors.primary : colors.muted}
                 />
                 <Text style={[styles.categoryText, selected && styles.selectedText]}>
-                  {category.name}
+                  {category.id === 'other-expense' && selected && customCategoryName
+                    ? customCategoryName
+                    : category.name}
                 </Text>
               </Pressable>
             );
           })}
         </View>
-
-        {isNamingOther ? (
-          <View style={styles.customCategory}>
-            <Text style={styles.customCategoryLabel}>Name your category</Text>
-            <TextInput
-              accessibilityLabel="Custom expense category name"
-              autoCapitalize="words"
-              maxLength={40}
-              onChangeText={setCustomCategoryName}
-              placeholder="e.g. Pet care"
-              placeholderTextColor="#98A19B"
-              returnKeyType="done"
-              value={customCategoryName}
-              style={styles.customCategoryInput}
-            />
-            <Text style={styles.customCategoryHint}>
-              This category will also be available when adding transactions.
-            </Text>
-          </View>
-        ) : null}
 
         <Pressable accessibilityRole="button" accessibilityLabel="Save budget" accessibilityState={{ disabled: saving }} disabled={saving} style={[styles.save, saving && styles.disabled]} onPress={() => void submit()}>
           <Text style={styles.saveText}>{saving ? 'Saving…' : 'Save budget'}</Text>
@@ -147,6 +181,75 @@ export default function BudgetEditorScreen() {
           </Pressable>
         ) : null}
       </ScrollView>
+
+      <Modal
+        animationType="fade"
+        onRequestClose={closeCustomCategoryModal}
+        transparent
+        visible={customCategoryModalVisible}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
+          <View
+            accessibilityLabel="Name custom budget category"
+            accessibilityViewIsModal
+            style={styles.modalCard}
+          >
+            <View style={styles.modalIcon}>
+              <Ionicons name="create-outline" size={22} color={colors.primary} />
+            </View>
+            <Text style={styles.modalTitle}>Name your category</Text>
+            <Text style={styles.modalDescription}>
+              Give this budget a clear name. It will also be available when adding
+              transactions.
+            </Text>
+            <TextInput
+              accessibilityLabel="Custom expense category name"
+              autoCapitalize="words"
+              autoFocus
+              maxLength={40}
+              onChangeText={(value) => {
+                setCustomCategoryDraft(value);
+                if (customCategoryError) setCustomCategoryError('');
+              }}
+              onSubmitEditing={confirmCustomCategory}
+              placeholder="e.g. Pet care"
+              placeholderTextColor="#98A19B"
+              returnKeyType="done"
+              value={customCategoryDraft}
+              style={[
+                styles.customCategoryInput,
+                customCategoryError ? styles.customCategoryInputError : null,
+              ]}
+            />
+            {customCategoryError ? (
+              <Text accessibilityRole="alert" style={styles.customCategoryError}>
+                {customCategoryError}
+              </Text>
+            ) : null}
+            <View style={styles.modalActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cancel custom category"
+                onPress={closeCustomCategoryModal}
+                style={styles.modalCancel}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Use custom category name"
+                onPress={confirmCustomCategory}
+                style={styles.modalConfirm}
+              >
+                <Text style={styles.modalConfirmText}>Use category</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -166,22 +269,40 @@ const styles = StyleSheet.create({
   selected: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
   categoryText: { flex: 1, color: colors.muted, fontSize: 12, fontWeight: '700' },
   selectedText: { color: colors.primary },
-  customCategory: {
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(20, 31, 25, 0.48)',
+    padding: spacing.xl,
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+  },
+  modalIcon: {
+    width: 46,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.md,
-    padding: spacing.lg,
+  },
+  modalTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '800',
     marginTop: spacing.lg,
   },
-  customCategoryLabel: {
-    color: colors.ink,
+  modalDescription: {
+    color: colors.muted,
     fontSize: 13,
-    fontWeight: '800',
-    marginBottom: spacing.sm,
+    lineHeight: 19,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
   customCategoryInput: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.canvas,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
@@ -190,11 +311,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
-  customCategoryHint: {
-    color: colors.muted,
+  customCategoryInputError: {
+    borderColor: colors.expense,
+  },
+  customCategoryError: {
+    color: colors.expense,
     fontSize: 11,
     lineHeight: 16,
     marginTop: spacing.sm,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xl,
+  },
+  modalCancel: {
+    flex: 1,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+  },
+  modalCancelText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  modalConfirm: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+  },
+  modalConfirmText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
   },
   save: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radius.md, padding: spacing.lg, marginTop: spacing.xl },
   saveText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
