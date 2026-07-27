@@ -28,6 +28,9 @@ remaining minimums before recommending extra payments, and flags minimums that
 cannot beat monthly interest. The monthly review turns confirmed local records
 into a plain-language story covering cash flow, real savings, debt progress,
 net worth, largest spending, and exact changes from the previous month.
+Global Activity search matches multiple words across descriptions, categories,
+accounts, types, currencies, and amounts, with local filters for account,
+category, date, amount, type, and sort order.
 Version 1.1 includes:
 
 - an Expo + React Native + TypeScript foundation;

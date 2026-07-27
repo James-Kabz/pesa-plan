@@ -96,7 +96,7 @@ Status: **Implementation complete; device verification pending**
 
 ### Stage 8 — Helpful Home and faster entry
 
-Status: **Started**
+Status: **Complete**
 
 - [x] Expected-versus-recorded monthly income card
 - [x] Full Today screen with a focused, explainable next action
@@ -111,7 +111,9 @@ Status: **Started**
 - [x] Local category suggestions learned from confirmed transaction descriptions
 - [x] Explainable exact and similar-description matching that avoids ambiguous guesses
 - [x] Explicit suggestion acceptance and dismissal with no automatic category changes
-- [ ] Global transaction search with useful filters
+- [x] Global transaction search with useful filters
+- [x] Multi-word matching across descriptions, categories, accounts, types, currencies, and amounts
+- [x] Account, category, date, amount, type, and sort filters with clear reset states
 
 ### Stage 9 — Local planning assistance
 
