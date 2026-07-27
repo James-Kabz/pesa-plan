@@ -3,6 +3,10 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { emergencyFundMonths, formatMoney } from '@/domain/money';
+import {
+  getSavingsGuidance,
+  type SavingsGuidance,
+} from '@/domain/savingsGuidance';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
@@ -12,10 +16,55 @@ export default function GoalsScreen() {
     (account) =>
       account.type === 'savings' && account.currency === preferences.mainCurrency,
   );
-  const emergencySaved = savingsGoals
+  const savingsAccountIds = new Set(
+    savingsAccounts.map((account) => account.id),
+  );
+  const mainCurrencyGoals = savingsGoals.filter(
+    (goal) => !goal.accountId || savingsAccountIds.has(goal.accountId),
+  );
+  const guidance = getSavingsGuidance(
+    accounts,
+    savingsGoals,
+    preferences.mainCurrency,
+  );
+  const emergencySaved = mainCurrencyGoals
     .filter((goal) => goal.goalType === 'emergency')
     .reduce((sum, goal) => sum + goal.savedMinor, 0);
   const coverage = emergencyFundMonths(emergencySaved, monthlySummary.expenseMinor);
+
+  function openGuidance(item: SavingsGuidance) {
+    switch (item.action) {
+      case 'allocate_goal':
+      case 'link_goal':
+        router.push({
+          pathname: '/goal/editor',
+          params: {
+            id: item.goalId,
+            suggestedMinor:
+              item.action === 'allocate_goal'
+                ? item.suggestedAmountMinor
+                : undefined,
+          },
+        });
+        break;
+      case 'create_goal':
+        router.push({
+          pathname: '/goal/editor',
+          params: { accountId: item.accountId },
+        });
+        break;
+      case 'fund_goal':
+      case 'restore_balance':
+        router.push({
+          pathname: '/transfer/new',
+          params: { toAccountId: item.accountId },
+        });
+        break;
+      case 'create_account':
+        router.push('/account/editor');
+        break;
+    }
+  }
 
   return (
     <Screen>
@@ -33,13 +82,78 @@ export default function GoalsScreen() {
         <Text style={styles.coverageValue}>{coverage.toFixed(1)} months</Text>
         <Text style={styles.coverageMeta}>Based on this month’s recorded spending</Text>
       </View>
+      <View
+        accessibilityRole="summary"
+        accessibilityLabel={`${guidance.title}. ${guidance.reason}`}
+        style={[
+          styles.guidance,
+          guidance.action === 'restore_balance' &&
+            styles.guidanceWarning,
+        ]}
+      >
+        <View
+          style={[
+            styles.guidanceIcon,
+            guidance.action === 'restore_balance' &&
+              styles.guidanceIconWarning,
+          ]}
+        >
+          <Ionicons
+            name={
+              guidance.action === 'restore_balance'
+                ? 'alert-circle-outline'
+                : guidance.action === 'all_set'
+                  ? 'checkmark-circle-outline'
+                  : 'sparkles-outline'
+            }
+            size={22}
+            color={
+              guidance.action === 'restore_balance'
+                ? colors.warning
+                : colors.primary
+            }
+          />
+        </View>
+        <View style={styles.guidanceContent}>
+          <Text style={styles.guidanceLabel}>YOUR NEXT SAVINGS STEP</Text>
+          <Text style={styles.guidanceTitle}>{guidance.title}</Text>
+          <Text style={styles.guidanceReason}>{guidance.reason}</Text>
+          {guidance.suggestedAmountMinor ? (
+            <Text style={styles.guidanceAmount}>
+              {formatMoney(
+                guidance.suggestedAmountMinor,
+                preferences.mainCurrency,
+              )}
+            </Text>
+          ) : null}
+          {guidance.action !== 'all_set' ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={getGuidanceActionLabel(guidance)}
+              onPress={() => openGuidance(guidance)}
+              style={styles.guidanceAction}
+            >
+              <Text style={styles.guidanceActionText}>
+                {getGuidanceActionLabel(guidance)}
+              </Text>
+              <Ionicons
+                name="arrow-forward"
+                size={16}
+                color={colors.primary}
+              />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
       <Text style={styles.section}>Savings accounts</Text>
       {savingsAccounts.map((account) => {
-        const allocated = savingsGoals
-          .filter((goal) => goal.accountId === account.id)
-          .reduce((sum, goal) => sum + goal.savedMinor, 0);
-        const unallocated = Math.max(0, account.currentBalanceMinor - allocated);
-        const overallocated = allocated > account.currentBalanceMinor;
+        const allocation = guidance.accounts.find(
+          (item) => item.accountId === account.id,
+        );
+        const allocated = allocation?.allocatedMinor ?? 0;
+        const unallocated = allocation?.unallocatedMinor ?? 0;
+        const shortfall = allocation?.shortfallMinor ?? 0;
+        const overallocated = shortfall > 0;
         return (
           <View key={account.id} style={styles.accountCard}>
             <View style={styles.accountTop}>
@@ -57,7 +171,7 @@ export default function GoalsScreen() {
               </Text>
               <Text style={overallocated ? styles.overallocated : styles.unallocated}>
                 {overallocated
-                  ? `Short by ${formatMoney(allocated - account.currentBalanceMinor, account.currency)}`
+                  ? `Short by ${formatMoney(shortfall, account.currency)}`
                   : `Available ${formatMoney(unallocated, account.currency)}`}
               </Text>
             </View>
@@ -82,7 +196,7 @@ export default function GoalsScreen() {
         </Pressable>
       ) : null}
       <Text style={styles.section}>Goals</Text>
-      {savingsGoals.map((goal) => {
+      {mainCurrencyGoals.map((goal) => {
         const progress = Math.min(1, goal.savedMinor / goal.targetMinor);
         return (
           <Pressable
@@ -109,7 +223,7 @@ export default function GoalsScreen() {
           </Pressable>
         );
       })}
-      {!savingsGoals.length ? (
+      {!mainCurrencyGoals.length ? (
         <View style={styles.empty}>
           <Text style={styles.emptyTitle}>Give your savings a purpose</Text>
           <Text style={styles.emptyText}>Create an emergency fund or another meaningful target.</Text>
@@ -117,6 +231,25 @@ export default function GoalsScreen() {
       ) : null}
     </Screen>
   );
+}
+
+function getGuidanceActionLabel(guidance: SavingsGuidance): string {
+  switch (guidance.action) {
+    case 'allocate_goal':
+      return `Allocate to ${guidance.goalName}`;
+    case 'create_goal':
+      return 'Create a goal';
+    case 'link_goal':
+      return `Link ${guidance.goalName}`;
+    case 'fund_goal':
+      return 'Transfer to savings';
+    case 'restore_balance':
+      return `Review ${guidance.accountName}`;
+    case 'create_account':
+      return 'Create a savings account';
+    default:
+      return 'Open savings';
+  }
 }
 
 const styles = StyleSheet.create({
@@ -127,6 +260,66 @@ const styles = StyleSheet.create({
   coverageLabel: { color: '#B9CEC4', fontSize: 12 },
   coverageValue: { color: '#FFFFFF', fontSize: 30, fontWeight: '800', marginTop: spacing.sm },
   coverageMeta: { color: '#B9CEC4', fontSize: 11, marginTop: spacing.sm },
+  guidance: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: '#BFD8CA',
+    padding: spacing.lg,
+    marginTop: spacing.lg,
+  },
+  guidanceWarning: {
+    backgroundColor: '#FFFCF5',
+    borderColor: '#E8D2A8',
+  },
+  guidanceIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guidanceIconWarning: { backgroundColor: '#F8EED8' },
+  guidanceContent: { flex: 1 },
+  guidanceLabel: {
+    color: colors.primary,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+  },
+  guidanceTitle: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 3,
+  },
+  guidanceReason: {
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 17,
+    marginTop: 3,
+  },
+  guidanceAmount: {
+    color: colors.ink,
+    fontSize: 17,
+    fontWeight: '800',
+    marginTop: spacing.sm,
+  },
+  guidanceAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+  guidanceActionText: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: '800',
+  },
   section: { color: colors.ink, fontSize: 18, fontWeight: '800', marginTop: spacing.xl, marginBottom: spacing.md },
   accountCard: { backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, marginBottom: spacing.sm },
   accountTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },

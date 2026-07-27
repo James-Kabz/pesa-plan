@@ -127,7 +127,9 @@ Status: **Started**
 - [x] Daily budget pacing based on category balances and inclusive days remaining
 - [x] Category pace states and month-end projections from confirmed spending
 - [x] Privacy-aware Home pulse plus detailed, accessible Plan guidance
-- [ ] Savings guidance based on real unallocated account balances
+- [x] Savings guidance based on real account balances and goal allocations
+- [x] Emergency-first, currency-safe allocation and funding recommendations
+- [x] Shortfall detection, preselected accounts, and explicit confirmation flows
 - [ ] Clear debt-payment guidance using the chosen payoff strategy
 
 ### Stage 10 — Monthly review and Version 2 release

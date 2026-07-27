@@ -6,6 +6,7 @@ import type {
   RecurringTransaction,
   SavingsGoal,
 } from './types';
+import { getSavingsGuidance } from './savingsGuidance';
 
 export type TodayAction =
   | 'review_recurring'
@@ -13,6 +14,7 @@ export type TodayAction =
   | 'review_budget'
   | 'create_budget'
   | 'create_goal'
+  | 'review_savings'
   | 'add_transaction';
 
 export interface TodayPriority {
@@ -24,6 +26,9 @@ export interface TodayPriority {
     | 'income_expected'
     | 'budget_setup'
     | 'savings_setup'
+    | 'savings_unallocated'
+    | 'savings_shortfall'
+    | 'savings_funding'
     | 'all_clear';
   tone: 'urgent' | 'warning' | 'positive' | 'neutral';
   title: string;
@@ -281,23 +286,72 @@ export function buildTodayPriority(input: TodayInput): TodayPriority {
     };
   }
 
-  const fundedSavingsAccount = input.accounts.some(
-    (account) =>
-      account.type === 'savings' &&
-      account.currency === input.currency &&
-      account.currentBalanceMinor > 0,
+  const hasSavingsIntent =
+    input.accounts.some(
+      (account) =>
+        account.type === 'savings' &&
+        account.currency === input.currency,
+    ) || input.savingsGoals.length > 0;
+  const savingsGuidance = getSavingsGuidance(
+    input.accounts,
+    input.savingsGoals,
+    input.currency,
   );
-  const hasGoalForMainCurrency = input.savingsGoals.some(
-    (goal) => goal.accountId && accountIds.has(goal.accountId),
-  );
-  if (fundedSavingsAccount && !hasGoalForMainCurrency) {
+  if (
+    hasSavingsIntent &&
+    savingsGuidance.action === 'restore_balance'
+  ) {
     return {
-      kind: 'savings_setup',
+      kind: 'savings_shortfall',
+      tone: 'warning',
+      title: savingsGuidance.title,
+      reason: savingsGuidance.reason,
+      action: 'review_savings',
+      actionLabel: 'Review savings',
+      amountMinor: savingsGuidance.suggestedAmountMinor,
+    };
+  }
+  if (
+    savingsGuidance.action === 'allocate_goal' ||
+    savingsGuidance.action === 'create_goal'
+  ) {
+    return {
+      kind:
+        savingsGuidance.action === 'allocate_goal'
+          ? 'savings_unallocated'
+          : 'savings_setup',
       tone: 'positive',
-      title: 'Give your savings a purpose',
-      reason: 'You have money in savings that has not been allocated to a goal.',
-      action: 'create_goal',
-      actionLabel: 'Create a goal',
+      title: savingsGuidance.title,
+      reason: savingsGuidance.reason,
+      action:
+        savingsGuidance.action === 'create_goal'
+          ? 'create_goal'
+          : 'review_savings',
+      actionLabel:
+        savingsGuidance.action === 'create_goal'
+          ? 'Create a goal'
+          : 'Allocate savings',
+      itemId: savingsGuidance.goalId,
+      amountMinor: savingsGuidance.suggestedAmountMinor,
+    };
+  }
+  if (
+    hasSavingsIntent &&
+    (savingsGuidance.action === 'link_goal' ||
+      savingsGuidance.action === 'fund_goal' ||
+      savingsGuidance.action === 'create_account')
+  ) {
+    return {
+      kind:
+        savingsGuidance.action === 'fund_goal'
+          ? 'savings_funding'
+          : 'savings_setup',
+      tone: 'neutral',
+      title: savingsGuidance.title,
+      reason: savingsGuidance.reason,
+      action: 'review_savings',
+      actionLabel: 'Review savings',
+      itemId: savingsGuidance.goalId,
     };
   }
 

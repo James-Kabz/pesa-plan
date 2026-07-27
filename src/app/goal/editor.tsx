@@ -8,7 +8,12 @@ import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function GoalEditorScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, accountId: requestedAccountId, suggestedMinor } =
+    useLocalSearchParams<{
+      id?: string;
+      accountId?: string;
+      suggestedMinor?: string;
+    }>();
   const {
     accounts,
     savingsGoals,
@@ -26,9 +31,21 @@ export default function GoalEditorScreen() {
     [accounts, preferences.mainCurrency],
   );
   const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
+  const parsedSuggestion = Number(suggestedMinor);
+  const [amount, setAmount] = useState(
+    Number.isFinite(parsedSuggestion) && parsedSuggestion > 0
+      ? (parsedSuggestion / 100).toFixed(2)
+      : '',
+  );
   const [goalType, setGoalType] = useState<'general' | 'emergency'>('general');
-  const [accountId, setAccountId] = useState(goal?.accountId ?? savingsAccounts[0]?.id ?? '');
+  const [accountId, setAccountId] = useState(
+    goal?.accountId ??
+      savingsAccounts.find(
+        (account) => account.id === requestedAccountId,
+      )?.id ??
+      savingsAccounts[0]?.id ??
+      '',
+  );
   const [saving, setSaving] = useState(false);
   const selectedAccount = savingsAccounts.find((account) => account.id === accountId);
   const allocatedToSelected = savingsGoals

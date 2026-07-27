@@ -9,6 +9,10 @@ import { TransactionRow } from '@/components/TransactionRow';
 import { getTimeGreeting } from '@/domain/greeting';
 import { formatMoney, getDueStatus } from '@/domain/money';
 import {
+  getSavingsGuidance,
+  type SavingsGuidance,
+} from '@/domain/savingsGuidance';
+import {
   buildTodayPriority,
   getBudgetPacing,
   getBudgetPulse,
@@ -49,6 +53,21 @@ export default function DashboardScreen() {
   const today = new Date();
   const dayKey = today.toDateString();
   const budgetPulse = useMemo(() => getBudgetPulse(budgets, today), [budgets, dayKey]);
+  const savingsGuidance = useMemo(
+    () =>
+      getSavingsGuidance(
+        accounts,
+        savingsGoals,
+        preferences.mainCurrency,
+      ),
+    [
+      accounts,
+      preferences.mainCurrency,
+      savingsGoals,
+    ],
+  );
+  const hasSavingsIntent =
+    savingsGuidance.accounts.length > 0 || savingsGoals.length > 0;
   const upcomingSchedules = useMemo(
     () => getUpcomingSchedules(recurring, preferences.mainCurrency, today),
     [dayKey, preferences.mainCurrency, recurring],
@@ -76,6 +95,11 @@ export default function DashboardScreen() {
       dayKey,
     ],
   );
+  const savingsIsPriority =
+    priority.kind === 'savings_setup' ||
+    priority.kind === 'savings_unallocated' ||
+    priority.kind === 'savings_shortfall' ||
+    priority.kind === 'savings_funding';
   const watchedBudgets = useMemo(
     () =>
       [...budgets]
@@ -115,10 +139,49 @@ export default function DashboardScreen() {
         router.push('/budget/editor');
         break;
       case 'create_goal':
-        router.push('/goal/editor');
+        openSavingsGuidance(savingsGuidance);
+        break;
+      case 'review_savings':
+        openSavingsGuidance(savingsGuidance);
         break;
       default:
         router.push('/transaction/new');
+    }
+  }
+
+  function openSavingsGuidance(guidance: SavingsGuidance) {
+    switch (guidance.action) {
+      case 'allocate_goal':
+      case 'link_goal':
+        router.push({
+          pathname: '/goal/editor',
+          params: {
+            id: guidance.goalId,
+            suggestedMinor:
+              guidance.action === 'allocate_goal'
+                ? guidance.suggestedAmountMinor
+                : undefined,
+          },
+        });
+        break;
+      case 'create_goal':
+        router.push({
+          pathname: '/goal/editor',
+          params: { accountId: guidance.accountId },
+        });
+        break;
+      case 'fund_goal':
+      case 'restore_balance':
+        router.push({
+          pathname: '/transfer/new',
+          params: { toAccountId: guidance.accountId },
+        });
+        break;
+      case 'create_account':
+        router.push('/account/editor');
+        break;
+      default:
+        router.push('/goals');
     }
   }
 
@@ -292,6 +355,61 @@ export default function DashboardScreen() {
         </View>
       ) : null}
 
+      {hasSavingsIntent &&
+      savingsGuidance.action !== 'all_set' &&
+      !savingsIsPriority ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${savingsGuidance.title}. ${savingsGuidance.reason}`}
+          onPress={() => openSavingsGuidance(savingsGuidance)}
+          style={({ pressed }) => [
+            styles.savingsGuide,
+            pressed && styles.pressed,
+          ]}
+        >
+          <View style={styles.savingsGuideIcon}>
+            <Ionicons
+              name={
+                savingsGuidance.action === 'restore_balance'
+                  ? 'alert-circle-outline'
+                  : 'sparkles-outline'
+              }
+              size={21}
+              color={
+                savingsGuidance.action === 'restore_balance'
+                  ? colors.warning
+                  : colors.primary
+              }
+            />
+          </View>
+          <View style={styles.savingsGuideContent}>
+            <Text style={styles.savingsGuideLabel}>SAVINGS GUIDANCE</Text>
+            <Text style={styles.savingsGuideTitle}>
+              {savingsGuidance.title}
+            </Text>
+            <Text style={styles.savingsGuideReason}>
+              {savingsGuidance.reason}
+            </Text>
+            <View style={styles.savingsGuideAction}>
+              {savingsGuidance.suggestedAmountMinor ? (
+                <Text style={styles.savingsGuideAmount}>
+                  {privateValue(
+                    formatMoney(
+                      savingsGuidance.suggestedAmountMinor,
+                      preferences.mainCurrency,
+                    ),
+                  )}
+                </Text>
+              ) : null}
+              <Text style={styles.savingsGuideActionText}>
+                {getSavingsActionLabel(savingsGuidance)}
+              </Text>
+              <Ionicons name="arrow-forward" size={15} color={colors.primary} />
+            </View>
+          </View>
+        </Pressable>
+      ) : null}
+
       {upcomingSchedules.length ? (
         <>
           <View style={styles.smartSection}>
@@ -439,6 +557,25 @@ export default function DashboardScreen() {
       </View>
     </Screen>
   );
+}
+
+function getSavingsActionLabel(guidance: SavingsGuidance): string {
+  switch (guidance.action) {
+    case 'allocate_goal':
+      return 'Review allocation';
+    case 'create_goal':
+      return 'Create goal';
+    case 'link_goal':
+      return 'Link goal';
+    case 'fund_goal':
+      return 'Transfer to savings';
+    case 'restore_balance':
+      return 'Restore balance';
+    case 'create_account':
+      return 'Create account';
+    default:
+      return 'Open savings';
+  }
 }
 
 function QuickAction({
@@ -735,6 +872,60 @@ const styles = StyleSheet.create({
   planText: { flex: 1 },
   planTitle: { color: colors.ink, fontSize: 13, fontWeight: '800' },
   planMeta: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 3 },
+  savingsGuide: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: '#BFD8CA',
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginTop: spacing.lg,
+  },
+  savingsGuideIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primarySoft,
+  },
+  savingsGuideContent: { flex: 1 },
+  savingsGuideLabel: {
+    color: colors.primary,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+  },
+  savingsGuideTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '800',
+    marginTop: 3,
+  },
+  savingsGuideReason: {
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 17,
+    marginTop: 3,
+  },
+  savingsGuideAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  savingsGuideAmount: {
+    color: colors.ink,
+    fontSize: 11,
+    fontWeight: '800',
+    marginRight: spacing.xs,
+  },
+  savingsGuideActionText: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: '800',
+  },
   quickActions: {
     flexDirection: 'row',
     gap: spacing.sm,

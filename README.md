@@ -20,7 +20,9 @@ notifications add private schedule, payday, and combined weekly budget/savings
 check-ins; notification previews never expose financial amounts. Budget pacing
 turns each remaining category balance into an explainable daily guide, highlights
 fast or exhausted categories, and projects month-end spending from confirmed
-activity.
+activity. Savings guidance compares real savings-account balances with goal
+allocations, recommends an emergency-first next step, and never moves or assigns
+money without confirmation.
 Version 1.1 includes:
 
 - an Expo + React Native + TypeScript foundation;

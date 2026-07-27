@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   Alert,
@@ -19,14 +19,31 @@ import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function NewTransferScreen() {
+  const { toAccountId } = useLocalSearchParams<{
+    toAccountId?: string;
+  }>();
   const { accounts, addTransfer } = useFinance();
-  const [fromId, setFromId] = useState(accounts[0]?.id ?? '');
+  const requestedDestination = accounts.find(
+    (account) => account.id === toAccountId,
+  );
+  const initialSource = accounts.find(
+    (account) =>
+      account.id !== requestedDestination?.id &&
+      account.currency === requestedDestination?.currency,
+  );
+  const [fromId, setFromId] = useState(
+    initialSource?.id ?? accounts[0]?.id ?? '',
+  );
   const from = accounts.find((account) => account.id === fromId);
   const destinations = useMemo(
     () => accounts.filter((account) => account.id !== fromId && account.currency === from?.currency),
     [accounts, from?.currency, fromId],
   );
-  const [toId, setToId] = useState(destinations[0]?.id ?? '');
+  const [toId, setToId] = useState(
+    destinations.find((account) => account.id === toAccountId)?.id ??
+      destinations[0]?.id ??
+      '',
+  );
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);

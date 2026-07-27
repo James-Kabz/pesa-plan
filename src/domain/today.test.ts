@@ -193,6 +193,66 @@ describe('Today priority', () => {
       ).kind,
     ).toBe('savings_setup');
   });
+
+  it('surfaces unallocated savings and real-balance shortfalls', () => {
+    const budget = {
+      id: 'food',
+      categoryId: 'food',
+      categoryName: 'Food',
+      categoryIcon: 'restaurant-outline',
+      limitMinor: 100_000,
+      spentMinor: 20_000,
+      month: '2026-07',
+    };
+    const savingsAccount = {
+      ...account,
+      id: 'savings',
+      name: 'Savings',
+      type: 'savings',
+      currentBalanceMinor: 100_000,
+    } as Account;
+    const goal = {
+      id: 'emergency',
+      name: 'Emergency fund',
+      targetMinor: 200_000,
+      savedMinor: 40_000,
+      goalType: 'emergency',
+      accountId: 'savings',
+      accountName: 'Savings',
+      accountBalanceMinor: 100_000,
+      targetDate: null,
+      color: '#175C45',
+    } as SavingsGoal;
+
+    expect(
+      buildTodayPriority(
+        input({
+          accounts: [account, savingsAccount],
+          budgets: [budget],
+          savingsGoals: [goal],
+        }),
+      ),
+    ).toMatchObject({
+      kind: 'savings_unallocated',
+      itemId: 'emergency',
+      amountMinor: 60_000,
+    });
+    expect(
+      buildTodayPriority(
+        input({
+          accounts: [
+            account,
+            { ...savingsAccount, currentBalanceMinor: 30_000 },
+          ],
+          budgets: [budget],
+          savingsGoals: [goal],
+        }),
+      ),
+    ).toMatchObject({
+      kind: 'savings_shortfall',
+      amountMinor: 10_000,
+    });
+  });
 });
 
 describe('Budget pacing', () => {
