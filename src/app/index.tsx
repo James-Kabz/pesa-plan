@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors } from '@/theme';
 
@@ -7,8 +7,9 @@ export default function Index() {
   const { isLoading, preferences } = useFinance();
   if (isLoading) {
     return (
-      <View style={styles.loading}>
+      <View accessibilityLiveRegion="polite" accessibilityLabel="Loading Pesa Plan" style={styles.loading}>
         <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading your finances…</Text>
       </View>
     );
   }
@@ -24,5 +25,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.canvas,
+  },
+  loadingText: {
+    color: colors.muted,
+    fontSize: 14,
+    marginTop: 12,
   },
 });

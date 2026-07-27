@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
+import { ProgressBar } from '@/components/ProgressBar';
 import { formatMoney, getDueStatus } from '@/domain/money';
 import {
   getBudgetPacing,
@@ -231,16 +232,18 @@ export default function PlanScreen() {
                 {formatMoney(Math.abs(remaining), preferences.mainCurrency)} {remaining < 0 ? 'over' : 'left'}
               </Text>
             </View>
-            <View style={styles.track}>
-              <View
-                style={[
-                  styles.fill,
-                  { width: `${ratio * 100}%` },
-                  pacing.status === 'watch' && styles.fillWatch,
-                  pacing.status === 'over' && styles.fillOver,
-                ]}
-              />
-            </View>
+            <ProgressBar
+              value={ratio}
+              label={`${budget.categoryName} budget used`}
+              color={
+                pacing.status === 'over'
+                  ? colors.expense
+                  : pacing.status === 'watch'
+                    ? colors.warning
+                    : colors.primary
+              }
+              style={styles.track}
+            />
             <Text style={styles.meta}>
               {formatMoney(budget.spentMinor, preferences.mainCurrency)} of{' '}
               {formatMoney(budget.limitMinor, preferences.mainCurrency)}
@@ -491,10 +494,7 @@ const styles = StyleSheet.create({
   emptyText: { color: colors.muted, fontSize: 13, textAlign: 'center', marginTop: spacing.sm },
   budget: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.lg, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
   budgetTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  track: { height: 8, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden', marginVertical: spacing.sm },
-  fill: { height: 8, borderRadius: radius.pill, backgroundColor: colors.primary },
-  fillWatch: { backgroundColor: colors.warning },
-  fillOver: { backgroundColor: colors.expense },
+  track: { marginVertical: spacing.sm },
   pacingGuide: {
     flexDirection: 'row',
     gap: spacing.md,

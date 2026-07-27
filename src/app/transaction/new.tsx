@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -132,6 +133,9 @@ export default function NewTransactionScreen() {
         setAmount('');
         setNote('');
         setSaving(false);
+        AccessibilityInfo.announceForAccessibility(
+          'Transaction saved. Ready for another.',
+        );
         requestAnimationFrame(() => amountInputRef.current?.focus());
       } else {
         router.back();
@@ -152,7 +156,7 @@ export default function NewTransactionScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel="Close transaction editor" style={styles.close} onPress={() => router.back()}>
             <Ionicons name="close" size={22} color={colors.ink} />
           </Pressable>
-          <Text style={styles.headerTitle}>{existing ? 'Edit transaction' : 'New transaction'}</Text>
+          <Text accessibilityRole="header" style={styles.headerTitle}>{existing ? 'Edit transaction' : 'New transaction'}</Text>
           <View style={styles.close} />
         </View>
 
@@ -519,6 +523,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   amountInput: {
+    flexShrink: 1,
     color: colors.ink,
     fontSize: 42,
     fontWeight: '800',
@@ -581,7 +586,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   category: {
-    width: '31%',
+    flexBasis: '30%',
+    flexGrow: 1,
+    minWidth: 96,
+    maxWidth: '48%',
     minHeight: 108,
     borderRadius: radius.md,
     backgroundColor: colors.surface,

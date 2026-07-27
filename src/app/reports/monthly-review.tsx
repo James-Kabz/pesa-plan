@@ -101,7 +101,7 @@ export default function MonthlyReviewScreen() {
         >
           <Ionicons name="arrow-back" size={22} color={colors.ink} />
         </Pressable>
-        <Text style={styles.headerTitle}>Monthly review</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle}>Monthly review</Text>
         <View style={styles.headerButton} />
       </View>
 
@@ -401,7 +401,7 @@ function savingsStory(
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.canvas },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
   content: { paddingHorizontal: spacing.lg, paddingBottom: 60 },
   eyebrow: { color: colors.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1.4, marginTop: spacing.md, marginBottom: spacing.sm },
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   heroDetail: { color: '#C7D8D0', fontSize: 13, lineHeight: 19, marginTop: spacing.sm },
   sectionTitle: { color: colors.ink, fontSize: 18, fontWeight: '800', marginTop: spacing.xl, marginBottom: spacing.md },
   metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  metric: { width: '48%', minHeight: 126, backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.lg },
+  metric: { flexBasis: '46%', flexGrow: 1, minWidth: 145, minHeight: 126, backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.lg },
   metricLabel: { color: colors.muted, fontSize: 11, marginTop: spacing.md },
   metricValue: { color: colors.ink, fontSize: 16, fontWeight: '800', marginTop: spacing.xs },
   panel: { backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.lg },

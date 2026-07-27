@@ -3,6 +3,8 @@ import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
+import { EmptyState } from '@/components/EmptyState';
+import { ProgressBar } from '@/components/ProgressBar';
 import { getDebtGuidance } from '@/domain/debtGuidance';
 import { estimatePayoffMonths, formatMoney, orderDebts } from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
@@ -157,9 +159,11 @@ export default function DebtScreen() {
               <Text style={styles.balance}>
                 {formatMoney(debt.balanceMinor, preferences.mainCurrency)} remaining
               </Text>
-              <View style={styles.track}>
-                <View style={[styles.fill, { width: `${progress * 100}%` }]} />
-              </View>
+              <ProgressBar
+                value={progress}
+                label={`${debt.name} repayment progress`}
+                style={styles.track}
+              />
               <Text style={styles.meta}>
                 Minimum {formatMoney(debt.minimumPaymentMinor, preferences.mainCurrency)} ·{' '}
                 {payoffMonths === null ? 'payment too low' : `~${payoffMonths} months`}
@@ -169,11 +173,13 @@ export default function DebtScreen() {
         );
       })}
       {!debts.length ? (
-        <View style={styles.empty}>
-          <Ionicons name="checkmark-circle-outline" size={38} color={colors.primary} />
-          <Text style={styles.emptyTitle}>No active debts</Text>
-          <Text style={styles.emptyText}>Add a debt to build a transparent payoff plan.</Text>
-        </View>
+        <EmptyState
+          icon="checkmark-circle-outline"
+          title="No active debts"
+          message="Add a debt to build a transparent payoff plan."
+          actionLabel="Add a debt"
+          onAction={() => router.push('/debt/editor')}
+        />
       ) : null}
       {debtPayments.length ? (
         <>
@@ -250,8 +256,7 @@ const styles = StyleSheet.create({
   name: { color: colors.ink, fontSize: 15, fontWeight: '800' },
   apr: { color: colors.expense, fontSize: 11, fontWeight: '800' },
   balance: { color: colors.muted, fontSize: 12, marginTop: spacing.xs },
-  track: { height: 7, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden', marginVertical: spacing.sm },
-  fill: { height: 7, backgroundColor: colors.primary, borderRadius: radius.pill },
+  track: { marginVertical: spacing.sm },
   meta: { color: colors.muted, fontSize: 11 },
   empty: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.xl },
   emptyTitle: { color: colors.ink, fontSize: 16, fontWeight: '800', marginTop: spacing.md },

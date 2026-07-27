@@ -30,7 +30,10 @@ into a plain-language story covering cash flow, real savings, debt progress,
 net worth, largest spending, and exact changes from the previous month.
 Global Activity search matches multiple words across descriptions, categories,
 accounts, types, currencies, and amounts, with local filters for account,
-category, date, amount, type, and sort order.
+category, date, amount, type, and sort order. The Version 2 interface also uses
+consistent touch targets, semantic progress and headings, direct actions for
+empty screens, accessible modal focus and deletion, and flexible layouts for
+larger text.
 Version 1.1 includes:
 
 - an Expo + React Native + TypeScript foundation;

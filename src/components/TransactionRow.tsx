@@ -27,6 +27,12 @@ export function TransactionRow({
       accessibilityRole={onPress || onLongPress ? 'button' : undefined}
       accessibilityLabel={`${transaction.note || transaction.categoryName}, ${transaction.accountName}, ${date}, ${amountsVisible ? `${isTransfer ? '' : isIncome ? 'income ' : 'expense '}${formatMoney(transaction.amountMinor, transaction.currency)}` : 'amount hidden'}`}
       accessibilityHint={onLongPress ? 'Long press to delete' : undefined}
+      accessibilityActions={
+        onLongPress ? [{ name: 'delete', label: 'Delete transaction' }] : undefined
+      }
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === 'delete') onLongPress?.();
+      }}
       style={({ pressed }) => [styles.row, pressed && onLongPress ? styles.pressed : undefined]}
       onLongPress={onLongPress}
       onPress={onPress}
@@ -48,7 +54,7 @@ export function TransactionRow({
         />
       </View>
       <View style={styles.details}>
-        <Text numberOfLines={1} style={styles.title}>
+        <Text numberOfLines={2} style={styles.title}>
           {transaction.note || transaction.categoryName}
         </Text>
         <Text style={styles.meta}>
@@ -77,6 +83,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
+    minHeight: 66,
   },
   pressed: {
     opacity: 0.6,

@@ -100,7 +100,7 @@ export default function DebtEditorScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="Close debt editor" style={styles.headerButton} onPress={() => router.back()}>
           <Ionicons name="close" size={22} color={colors.ink} />
         </Pressable>
-        <Text style={styles.headerTitle}>{debt ? `Pay ${debt.name}` : 'Add debt'}</Text>
+        <Text accessibilityRole="header" numberOfLines={2} style={styles.headerTitle}>{debt ? `Pay ${debt.name}` : 'Add debt'}</Text>
         <View style={styles.headerButton} />
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
@@ -125,6 +125,7 @@ export default function DebtEditorScreen() {
               <View style={styles.field}>
                 <Text style={styles.label}>APR %</Text>
                 <TextInput accessibilityLabel="Annual percentage rate" value={apr} onChangeText={setApr} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#98A19B" style={styles.input} />
+                <Text style={styles.hint}>The yearly interest rate, if your lender provides one.</Text>
               </View>
               <View style={styles.field}>
                 <Text style={styles.label}>Minimum payment</Text>
@@ -133,6 +134,7 @@ export default function DebtEditorScreen() {
             </View>
             <Text style={styles.label}>Monthly due day (optional)</Text>
             <TextInput accessibilityLabel="Monthly due day" value={dueDay} onChangeText={setDueDay} keyboardType="number-pad" placeholder="e.g. 25" placeholderTextColor="#98A19B" style={styles.input} />
+            <Text style={styles.hint}>Enter a day from 1 to 31.</Text>
           </>
         )}
         <Pressable accessibilityRole="button" accessibilityLabel={debt ? 'Record debt payment' : 'Add debt'} accessibilityState={{ disabled: saving }} disabled={saving} style={[styles.save, saving && styles.disabled]} onPress={() => void submit()}>
@@ -155,16 +157,17 @@ function MoneyInput({ value, onChangeText, currency, autoFocus = false }: { valu
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.canvas },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  headerButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
+  headerButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1, color: colors.ink, fontSize: 17, fontWeight: '800', textAlign: 'center' },
   content: { paddingHorizontal: spacing.lg, paddingBottom: 60 },
   label: { color: colors.ink, fontSize: 13, fontWeight: '800', marginTop: spacing.xl, marginBottom: spacing.sm },
   input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.lg, color: colors.ink, fontSize: 15 },
   moneyRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.xl },
   currency: { color: colors.muted, fontSize: 18, fontWeight: '700', marginRight: spacing.sm },
-  money: { color: colors.ink, fontSize: 38, fontWeight: '800', minWidth: 140 },
-  columns: { flexDirection: 'row', gap: spacing.md },
-  field: { flex: 1 },
+  money: { flexShrink: 1, color: colors.ink, fontSize: 38, fontWeight: '800', minWidth: 120 },
+  columns: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  field: { flex: 1, minWidth: 140 },
+  hint: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: spacing.xs },
   context: { color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: spacing.xl },
   current: { color: colors.ink, fontSize: 28, fontWeight: '800', textAlign: 'center', marginTop: spacing.sm },
   save: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radius.md, padding: spacing.lg, marginTop: spacing.xl },

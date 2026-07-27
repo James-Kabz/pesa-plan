@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
+import { ProgressBar } from '@/components/ProgressBar';
 import { debtToIncomeRatio, formatMoney } from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
@@ -27,7 +28,7 @@ export default function ReportsScreen() {
   return (
     <Screen>
       <Text style={styles.eyebrow}>KNOW YOUR NUMBERS</Text>
-      <Text style={styles.title}>Reports</Text>
+      <Text accessibilityRole="header" style={styles.title}>Reports</Text>
       <Text style={styles.subtitle}>
         {preferences.mainCurrency}-based insight from your local ledger.
       </Text>
@@ -72,14 +73,11 @@ export default function ReportsScreen() {
                 {formatMoney(category.amountMinor, preferences.mainCurrency)}
               </Text>
             </View>
-            <View style={styles.track}>
-              <View
-                style={[
-                  styles.categoryFill,
-                  { width: `${(category.amountMinor / maxCategory) * 100}%` },
-                ]}
-              />
-            </View>
+            <ProgressBar
+              value={category.amountMinor / maxCategory}
+              label={`${category.categoryName} share of highest category spending`}
+              style={styles.track}
+            />
           </View>
         ))}
         {!categorySpending.length ? <Text style={styles.empty}>No expenses this month.</Text> : null}
@@ -150,7 +148,7 @@ const styles = StyleSheet.create({
   reviewText: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: spacing.xs },
   pressed: { opacity: 0.7 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  metric: { width: '48%', minHeight: 118, backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, justifyContent: 'space-between' },
+  metric: { flexBasis: '46%', flexGrow: 1, minWidth: 145, minHeight: 118, backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, justifyContent: 'space-between' },
   metricLabel: { color: colors.muted, fontSize: 12 },
   metricValue: { color: colors.ink, fontSize: 18, fontWeight: '800' },
   negative: { color: colors.expense },
@@ -160,8 +158,7 @@ const styles = StyleSheet.create({
   rowTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
   rowLabel: { color: colors.ink, fontSize: 13, fontWeight: '700' },
   rowValue: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  track: { height: 8, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden' },
-  categoryFill: { height: 8, backgroundColor: colors.primary, borderRadius: radius.pill },
+  track: {},
   empty: { color: colors.muted, fontSize: 13, textAlign: 'center', padding: spacing.lg },
   trendRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   month: { width: 64, color: colors.muted, fontSize: 11, fontWeight: '700' },

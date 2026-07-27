@@ -124,7 +124,7 @@ export default function BudgetEditorScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="Close budget editor" style={styles.headerButton} onPress={() => router.back()}>
           <Ionicons name="close" size={22} color={colors.ink} />
         </Pressable>
-        <Text style={styles.headerTitle}>{existing ? 'Edit budget' : 'New budget'}</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle}>{existing ? 'Edit budget' : 'New budget'}</Text>
         <View style={styles.headerButton} />
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
@@ -257,7 +257,7 @@ export default function BudgetEditorScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.canvas },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  headerButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  headerButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
   content: { paddingHorizontal: spacing.lg, paddingBottom: 60 },
   label: { color: colors.ink, fontSize: 14, fontWeight: '800', marginTop: spacing.xl, marginBottom: spacing.md },

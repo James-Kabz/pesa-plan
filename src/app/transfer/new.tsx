@@ -91,7 +91,7 @@ export default function NewTransferScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel="Close transfer editor" style={styles.headerButton} onPress={() => router.back()}>
             <Ionicons name="close" size={22} color={colors.ink} />
           </Pressable>
-          <Text style={styles.headerTitle}>Transfer money</Text>
+          <Text accessibilityRole="header" style={styles.headerTitle}>Transfer money</Text>
           <View style={styles.headerButton} />
         </View>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
-  headerButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  headerButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
   content: { paddingHorizontal: spacing.lg, paddingBottom: 60 },
   amountLabel: { color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: spacing.lg },

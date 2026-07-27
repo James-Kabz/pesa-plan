@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { formatMoney } from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
@@ -14,15 +15,13 @@ export default function AccountsScreen() {
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Go back" style={styles.headerButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color={colors.ink} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Accounts</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Add account" style={styles.headerButton} onPress={() => router.push('/account/editor')}>
-          <Ionicons name="add" size={24} color={colors.primary} />
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title="Accounts"
+        onBack={() => router.back()}
+        actionIcon="add"
+        actionLabel="Add account"
+        onAction={() => router.push('/account/editor')}
+      />
 
       <View style={styles.totalCard}>
         <Text style={styles.totalLabel}>Combined {preferences.mainCurrency} balance</Text>
@@ -63,11 +62,11 @@ export default function AccountsScreen() {
               />
             </View>
             <View style={styles.details}>
-              <Text style={styles.name}>{account.name}</Text>
+              <Text numberOfLines={2} style={styles.name}>{account.name}</Text>
               <Text style={styles.type}>{account.type.replace('_', ' ')}</Text>
             </View>
             <View style={styles.amountWrap}>
-              <Text style={styles.amount}>
+              <Text numberOfLines={1} style={styles.amount}>
                 {formatMoney(account.currentBalanceMinor, account.currency)}
               </Text>
               <Ionicons name="chevron-forward" size={16} color={colors.muted} />
@@ -85,24 +84,6 @@ export default function AccountsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing.sm,
-    marginBottom: spacing.xl,
-  },
-  headerButton: {
-    width: 42,
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    color: colors.ink,
-    fontSize: 18,
-    fontWeight: '800',
-  },
   totalCard: {
     backgroundColor: colors.dark,
     borderRadius: radius.lg,
@@ -171,7 +152,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: spacing.md,
   },
-  details: { flex: 1 },
+  details: { flex: 1, minWidth: 0 },
   name: {
     color: colors.ink,
     fontSize: 15,
@@ -187,8 +168,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    maxWidth: '48%',
   },
   amount: {
+    flexShrink: 1,
     color: colors.ink,
     fontSize: 14,
     fontWeight: '800',

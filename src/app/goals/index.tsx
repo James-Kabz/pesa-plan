@@ -2,6 +2,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
+import { EmptyState } from '@/components/EmptyState';
+import { ProgressBar } from '@/components/ProgressBar';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { emergencyFundMonths, formatMoney } from '@/domain/money';
 import {
   getSavingsGuidance,
@@ -68,15 +71,13 @@ export default function GoalsScreen() {
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Go back" style={styles.headerButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color={colors.ink} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Savings goals</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Add savings goal" style={styles.headerButton} onPress={() => router.push('/goal/editor')}>
-          <Ionicons name="add" size={24} color={colors.primary} />
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title="Savings goals"
+        onBack={() => router.back()}
+        actionIcon="add"
+        actionLabel="Add savings goal"
+        onAction={() => router.push('/goal/editor')}
+      />
       <View style={styles.coverage}>
         <Text style={styles.coverageLabel}>Emergency coverage estimate</Text>
         <Text style={styles.coverageValue}>{coverage.toFixed(1)} months</Text>
@@ -218,16 +219,24 @@ export default function GoalsScreen() {
               <Text style={[styles.accountLink, !goal.accountId && styles.accountLinkWarning]}>
                 {goal.accountName ?? 'Choose a savings account'}
               </Text>
-              <View style={styles.track}><View style={[styles.fill, { width: `${progress * 100}%`, backgroundColor: goal.color }]} /></View>
+              <ProgressBar
+                value={progress}
+                label={`${goal.name} savings progress`}
+                color={goal.color}
+                style={styles.track}
+              />
             </View>
           </Pressable>
         );
       })}
       {!mainCurrencyGoals.length ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>Give your savings a purpose</Text>
-          <Text style={styles.emptyText}>Create an emergency fund or another meaningful target.</Text>
-        </View>
+        <EmptyState
+          icon="sparkles-outline"
+          title="Give your savings a purpose"
+          message="Create an emergency fund or another meaningful target."
+          actionLabel="Create a savings goal"
+          onAction={() => router.push('/goal/editor')}
+        />
       ) : null}
     </Screen>
   );
@@ -253,9 +262,6 @@ function getGuidanceActionLabel(guidance: SavingsGuidance): string {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: spacing.sm, marginBottom: spacing.xl },
-  headerButton: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { color: colors.ink, fontSize: 18, fontWeight: '800' },
   coverage: { backgroundColor: colors.dark, borderRadius: radius.lg, padding: spacing.xl },
   coverageLabel: { color: '#B9CEC4', fontSize: 12 },
   coverageValue: { color: '#FFFFFF', fontSize: 30, fontWeight: '800', marginTop: spacing.sm },
@@ -322,11 +328,11 @@ const styles = StyleSheet.create({
   },
   section: { color: colors.ink, fontSize: 18, fontWeight: '800', marginTop: spacing.xl, marginBottom: spacing.md },
   accountCard: { backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, marginBottom: spacing.sm },
-  accountTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  accountTop: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', alignItems: 'flex-start' },
   accountName: { color: colors.ink, fontSize: 15, fontWeight: '800' },
   accountMeta: { color: colors.muted, fontSize: 11, marginTop: 2 },
-  accountTotal: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  allocationRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md },
+  accountTotal: { flexShrink: 1, color: colors.ink, fontSize: 16, fontWeight: '800' },
+  allocationRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.md },
   allocationLabel: { color: colors.muted, fontSize: 11, fontWeight: '700' },
   unallocated: { color: colors.primary, fontSize: 11, fontWeight: '800' },
   overallocated: { color: colors.expense, fontSize: 11, fontWeight: '800' },
@@ -335,15 +341,13 @@ const styles = StyleSheet.create({
   card: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, marginBottom: spacing.md },
   icon: { width: 44, height: 44, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
   details: { flex: 1 },
-  top: { flexDirection: 'row', justifyContent: 'space-between' },
-  name: { color: colors.ink, fontSize: 15, fontWeight: '800' },
+  top: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
+  name: { flex: 1, color: colors.ink, fontSize: 15, fontWeight: '800' },
   percent: { color: colors.primary, fontSize: 12, fontWeight: '800' },
   meta: { color: colors.muted, fontSize: 11, marginTop: 3 },
   accountLink: { color: colors.primary, fontSize: 10, fontWeight: '700', marginTop: 3 },
   accountLinkWarning: { color: colors.expense },
-  track: { height: 7, backgroundColor: colors.border, borderRadius: radius.pill, overflow: 'hidden', marginTop: spacing.sm },
-  fill: { height: 7, borderRadius: radius.pill },
-  empty: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.xl },
+  track: { marginTop: spacing.sm },
   emptyTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' },
   emptyText: { color: colors.muted, fontSize: 13, marginTop: spacing.sm, textAlign: 'center' },
 });

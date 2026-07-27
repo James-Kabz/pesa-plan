@@ -1,8 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   Alert,
+  findNodeHandle,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -36,6 +38,7 @@ export default function TransactionsScreen() {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [minimumText, setMinimumText] = useState('');
   const [maximumText, setMaximumText] = useState('');
+  const filterTitleRef = useRef<Text>(null);
   const activeFilterCount = activeTransactionFilterCount(filters);
   const visibleTransactions = useMemo(
     () => searchTransactions(transactions, filters),
@@ -97,7 +100,7 @@ export default function TransactionsScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.eyebrow}>MONEY MOVEMENT</Text>
-          <Text style={styles.title}>Activity</Text>
+          <Text accessibilityRole="header" style={styles.title}>Activity</Text>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -242,11 +245,22 @@ export default function TransactionsScreen() {
           icon="swap-vertical-outline"
           title="No activity yet"
           message="Record income and expenses to build a clear picture of your cash flow."
+          actionLabel="Add first transaction"
+          onAction={() =>
+            router.push({
+              pathname: '/transaction/new',
+              params: { type: 'expense' },
+            })
+          }
         />
       )}
 
       <Modal
         animationType="slide"
+        onShow={() => {
+          const node = findNodeHandle(filterTitleRef.current);
+          if (node) AccessibilityInfo.setAccessibilityFocus(node);
+        }}
         onRequestClose={() => setFilterModalVisible(false)}
         transparent
         visible={filterModalVisible}
@@ -263,7 +277,13 @@ export default function TransactionsScreen() {
             <View style={styles.sheetHeader}>
               <View>
                 <Text style={styles.sheetEyebrow}>NARROW THE RESULTS</Text>
-                <Text style={styles.sheetTitle}>Filters</Text>
+                <Text
+                  accessibilityRole="header"
+                  ref={filterTitleRef}
+                  style={styles.sheetTitle}
+                >
+                  Filters
+                </Text>
               </View>
               <Pressable
                 accessibilityRole="button"
@@ -563,6 +583,7 @@ const styles = StyleSheet.create({
   },
   filters: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
     marginBottom: spacing.lg,
   },
@@ -674,8 +695,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   closeButton: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: radius.pill,
     backgroundColor: colors.surface,
     alignItems: 'center',

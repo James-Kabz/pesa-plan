@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSQLiteContext } from 'expo-sqlite';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import {
   createBackup,
   decryptBackup,
@@ -211,19 +212,17 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Go back" style={styles.headerButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color={colors.ink} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Settings</Text>
-        <View style={styles.headerButton} />
-      </View>
+      <ScreenHeader
+        title="Settings"
+        onBack={() => router.back()}
+        style={styles.header}
+      />
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.section}>Personalize</Text>
+        <Text accessibilityRole="header" style={styles.section}>Personalize</Text>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Guided financial setup</Text>
           <Text style={styles.cardText}>
@@ -238,7 +237,7 @@ export default function SettingsScreen() {
           />
         </View>
 
-        <Text style={styles.section}>App lock</Text>
+        <Text accessibilityRole="header" style={styles.section}>App lock</Text>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
             {!securityAvailable
@@ -274,7 +273,7 @@ export default function SettingsScreen() {
           )}
         </View>
 
-        <Text style={styles.section}>Reminders</Text>
+        <Text accessibilityRole="header" style={styles.section}>Reminders</Text>
         <View style={styles.card}>
           <PreferenceToggle
             label="Useful local reminders"
@@ -326,7 +325,7 @@ export default function SettingsScreen() {
           </Text>
         </View>
 
-        <Text style={styles.section}>Your data</Text>
+        <Text accessibilityRole="header" style={styles.section}>Your data</Text>
         <View style={styles.card}>
           <Action label="Export transactions as CSV" icon="document-text-outline" onPress={() => void exportCsv()} disabled={busy} />
           <TextInput
@@ -371,6 +370,7 @@ function PreferenceToggle({
       <Switch
         accessibilityLabel={label}
         accessibilityRole="switch"
+        accessibilityState={{ checked: value, disabled }}
         disabled={disabled}
         value={value}
         onValueChange={onValueChange}
@@ -393,9 +393,7 @@ function Action({ label, icon, onPress, disabled = false }: { label: string; ico
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.canvas },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  headerButton: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { color: colors.ink, fontSize: 18, fontWeight: '800' },
+  header: { paddingHorizontal: spacing.lg },
   content: { paddingHorizontal: spacing.lg },
   section: { color: colors.ink, fontSize: 18, fontWeight: '800', marginTop: spacing.xl, marginBottom: spacing.md },
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.lg },

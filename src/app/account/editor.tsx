@@ -88,7 +88,7 @@ export default function AccountEditorScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel="Close account editor" style={styles.headerButton} onPress={() => router.back()}>
             <Ionicons name="close" size={22} color={colors.ink} />
           </Pressable>
-          <Text style={styles.headerTitle}>{existing ? 'Edit account' : 'New account'}</Text>
+          <Text accessibilityRole="header" style={styles.headerTitle}>{existing ? 'Edit account' : 'New account'}</Text>
           <View style={styles.headerButton} />
         </View>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
-  headerButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  headerButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
   content: { paddingHorizontal: spacing.lg, paddingBottom: 60 },
   label: {
@@ -228,7 +228,9 @@ const styles = StyleSheet.create({
   },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   typeOption: {
-    width: '48%',
+    flexBasis: '46%',
+    flexGrow: 1,
+    minWidth: 140,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -241,8 +243,8 @@ const styles = StyleSheet.create({
   typeSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   typeText: { color: colors.muted, fontSize: 13, fontWeight: '700' },
   typeTextSelected: { color: colors.primary },
-  twoColumn: { flexDirection: 'row', gap: spacing.md },
-  field: { flex: 1 },
+  twoColumn: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  field: { flex: 1, minWidth: 140 },
   swatches: { flexDirection: 'row', gap: spacing.md },
   swatch: {
     width: 42,

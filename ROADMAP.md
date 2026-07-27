@@ -138,13 +138,24 @@ Status: **Complete**
 
 ### Stage 10 — Monthly review and Version 2 release
 
-Status: **Started**
+Status: **Feature implementation complete; release verification deferred**
 
 - [x] Plain-language monthly review: income, spending, savings, debt, and changes
 - [x] Deterministic insights that explain the numbers behind every suggestion
-- [ ] Empty-state, accessibility, font-scaling, and error-message polish
+- [x] Empty-state, accessibility, font-scaling, and error-message polish
+  - consistent 48-point navigation and modal controls
+  - semantic headings, progress values, selected states, and delete actions
+  - direct next actions on empty Activity, savings, funds, and debt screens
+  - flexible high-use forms, cards, and amount layouts for larger text
+  - modal focus and spoken save confirmation for assistive technology
 - [ ] Migration, backup/restore, clean-install, and upgrade release gates
 - [ ] Signed Android Version 2 build and physical-device checklist
+
+The remaining release checks are intentionally deferred until the testing
+session: fresh installation, Version 1.1 migration, backup and restore, PIN and
+fingerprint, notification permissions and reminders, offline use, background
+and inactivity locking, small-screen device coverage, Android APK/AAB
+validation, and final feature regression.
 
 ## Product principles
 

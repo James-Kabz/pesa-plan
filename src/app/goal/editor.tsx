@@ -105,7 +105,7 @@ export default function GoalEditorScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close goal editor" style={styles.headerButton} onPress={() => router.back()}><Ionicons name="close" size={22} color={colors.ink} /></Pressable>
-        <Text style={styles.headerTitle}>{goal ? `Add to ${goal.name}` : 'New savings goal'}</Text>
+        <Text accessibilityRole="header" numberOfLines={2} style={styles.headerTitle}>{goal ? `Add to ${goal.name}` : 'New savings goal'}</Text>
         <View style={styles.headerButton} />
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -198,8 +198,8 @@ export default function GoalEditorScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.canvas },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  headerButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
+  headerButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1, color: colors.ink, fontSize: 17, fontWeight: '800', textAlign: 'center' },
   content: { paddingHorizontal: spacing.lg, paddingBottom: 60 },
   label: { color: colors.ink, fontSize: 14, fontWeight: '800', marginTop: spacing.xl, marginBottom: spacing.md },
   input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.lg, color: colors.ink, fontSize: 15 },

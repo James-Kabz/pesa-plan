@@ -41,7 +41,7 @@ export default function FundEditorScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="Close sinking fund editor" style={styles.headerButton} onPress={() => router.back()}>
           <Ionicons name="close" size={22} color={colors.ink} />
         </Pressable>
-        <Text style={styles.headerTitle}>{fund ? `Add to ${fund.name}` : 'New sinking fund'}</Text>
+        <Text accessibilityRole="header" numberOfLines={2} style={styles.headerTitle}>{fund ? `Add to ${fund.name}` : 'New sinking fund'}</Text>
         <View style={styles.headerButton} />
       </View>
       <View style={styles.content}>
@@ -79,8 +79,8 @@ export default function FundEditorScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.canvas },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  headerButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
+  headerButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1, color: colors.ink, fontSize: 17, fontWeight: '800', textAlign: 'center' },
   content: { paddingHorizontal: spacing.lg },
   label: { color: colors.ink, fontSize: 14, fontWeight: '800', marginTop: spacing.xl, marginBottom: spacing.md },
   input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.lg, color: colors.ink, fontSize: 15 },

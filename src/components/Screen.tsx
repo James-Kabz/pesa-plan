@@ -14,6 +14,8 @@ export function Screen({ children, scroll = true, contentContainerStyle, ...prop
       {scroll ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
+          keyboardDismissMode={props.keyboardDismissMode ?? 'on-drag'}
+          keyboardShouldPersistTaps={props.keyboardShouldPersistTaps ?? 'handled'}
           contentContainerStyle={[styles.content, contentContainerStyle]}
           {...props}
         >
