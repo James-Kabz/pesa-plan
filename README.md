@@ -5,8 +5,8 @@ cash flow, budgets, savings, debt, and net worth.
 
 ## Current milestone
 
-Version 1.0 is released as a signed Android artifact. Version 1.1 is the current
-quality release and includes:
+Version 1.1 is the current signed and device-verified Android release. It
+includes:
 
 - an Expo + React Native + TypeScript foundation;
 - a persistent SQLite database with migrations;

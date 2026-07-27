@@ -99,4 +99,4 @@ Device: Samsung Galaxy A55 (`SM-A556E`), Android 16.
 - [x] APK reports version name 1.1.0 and version code 5
 - [x] APK signature matches the tested Version 1.0 release certificate
 - [x] APK archive integrity and permission manifest verified
-- [ ] Install as an in-place update and validate the Version 7-to-9 database migration on the physical device
+- [x] Install as an in-place update and validate the Version 7-to-9 database migration on the physical device
