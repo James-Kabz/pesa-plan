@@ -17,7 +17,9 @@ export default function BudgetEditorScreen() {
   );
   const [categoryId, setCategoryId] = useState(existing?.categoryId ?? expenseCategories[0]?.id ?? '');
   const [amount, setAmount] = useState(existing ? String(existing.limitMinor / 100) : '');
+  const [customCategoryName, setCustomCategoryName] = useState('');
   const [saving, setSaving] = useState(false);
+  const isNamingOther = !existing && categoryId === 'other-expense';
 
   async function submit() {
     const limitMinor = parseMoneyInput(amount);
@@ -25,9 +27,30 @@ export default function BudgetEditorScreen() {
       Alert.alert('Check the budget', 'Choose a category and enter a limit greater than zero.');
       return;
     }
+    const normalizedCustomName = customCategoryName.trim().replace(/\s+/g, ' ');
+    if (isNamingOther && normalizedCustomName.length < 2) {
+      Alert.alert('Name this category', 'Enter a name with at least two characters.');
+      return;
+    }
+    const matchingCategory = expenseCategories.find(
+      (category) =>
+        category.id !== 'other-expense' &&
+        category.name.toLocaleLowerCase() === normalizedCustomName.toLocaleLowerCase(),
+    );
+    if (isNamingOther && matchingCategory) {
+      Alert.alert(
+        'Category already exists',
+        `Select “${matchingCategory.name}” from the category list instead.`,
+      );
+      return;
+    }
     setSaving(true);
     try {
-      await setBudget(categoryId, limitMinor);
+      await setBudget(
+        categoryId,
+        limitMinor,
+        isNamingOther ? normalizedCustomName : undefined,
+      );
       router.back();
     } catch {
       setSaving(false);
@@ -95,6 +118,26 @@ export default function BudgetEditorScreen() {
           })}
         </View>
 
+        {isNamingOther ? (
+          <View style={styles.customCategory}>
+            <Text style={styles.customCategoryLabel}>Name your category</Text>
+            <TextInput
+              accessibilityLabel="Custom expense category name"
+              autoCapitalize="words"
+              maxLength={40}
+              onChangeText={setCustomCategoryName}
+              placeholder="e.g. Pet care"
+              placeholderTextColor="#98A19B"
+              returnKeyType="done"
+              value={customCategoryName}
+              style={styles.customCategoryInput}
+            />
+            <Text style={styles.customCategoryHint}>
+              This category will also be available when adding transactions.
+            </Text>
+          </View>
+        ) : null}
+
         <Pressable accessibilityRole="button" accessibilityLabel="Save budget" accessibilityState={{ disabled: saving }} disabled={saving} style={[styles.save, saving && styles.disabled]} onPress={() => void submit()}>
           <Text style={styles.saveText}>{saving ? 'Saving…' : 'Save budget'}</Text>
         </Pressable>
@@ -123,6 +166,36 @@ const styles = StyleSheet.create({
   selected: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
   categoryText: { flex: 1, color: colors.muted, fontSize: 12, fontWeight: '700' },
   selectedText: { color: colors.primary },
+  customCategory: {
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginTop: spacing.lg,
+  },
+  customCategoryLabel: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: spacing.sm,
+  },
+  customCategoryInput: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    color: colors.ink,
+    fontSize: 15,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  customCategoryHint: {
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: spacing.sm,
+  },
   save: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radius.md, padding: spacing.lg, marginTop: spacing.xl },
   saveText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
   disabled: { opacity: 0.5 },

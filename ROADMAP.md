@@ -88,6 +88,7 @@ Status: **Implementation complete; device verification pending**
 - [x] Expected monthly income kept separate from received transactions
 - [x] Receiving account, pay day, and fixed/variable income details
 - [x] Basic current-month category budget with live unassigned amount
+- [x] Named custom expense categories when “Other” is selected for a budget
 - [x] Savings explained and modeled as an account transfer/allocation, not an expense
 - [x] Setup review and safe rerun from Settings without duplicate planning records
 - [x] Version 1.1 backup compatibility and no forced setup for existing users

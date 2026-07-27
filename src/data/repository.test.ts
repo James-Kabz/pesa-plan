@@ -15,6 +15,7 @@ import {
   deleteTransaction,
   listAccounts,
   listBudgets,
+  listCategories,
   listCategorySpending,
   listDebtPayments,
   listDebts,
@@ -27,6 +28,7 @@ import {
   recordDebtPayment,
   saveAccount,
   saveBudget,
+  saveCustomCategoryBudget,
   completeOnboarding,
   getAppPreferences,
   listExpectedIncome,
@@ -153,6 +155,40 @@ describe('finance repository integration', () => {
     expect((await listMonthlyTrends(db))[0]).toMatchObject({
       month: '2026-07',
       expenseMinor: 10_000,
+    });
+  });
+
+  it('creates a named expense category with its budget and tracks only that spending', async () => {
+    await expect(
+      saveCustomCategoryBudget(db, ' ', '2026-07', 25_000),
+    ).rejects.toThrow('at least two characters');
+
+    const categoryId = await saveCustomCategoryBudget(
+      db,
+      '  Pet   care  ',
+      '2026-07',
+      25_000,
+    );
+
+    expect((await listCategories(db, 'expense')).find(({ id }) => id === categoryId)).toMatchObject({
+      name: 'Pet care',
+      type: 'expense',
+      icon: 'ellipsis-horizontal',
+    });
+
+    await createTransaction(db, {
+      accountId: 'starter-cash',
+      categoryId,
+      type: 'expense',
+      amountMinor: 4_500,
+      occurredAt: '2026-07-15T12:00:00.000Z',
+    });
+
+    expect((await listBudgets(db, '2026-07'))[0]).toMatchObject({
+      categoryId,
+      categoryName: 'Pet care',
+      limitMinor: 25_000,
+      spentMinor: 4_500,
     });
   });
 

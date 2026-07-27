@@ -39,6 +39,7 @@ import {
   postRecurring,
   listBudgets,
   saveBudget,
+  saveCustomCategoryBudget,
   deleteBudget,
   saveAccount,
   listSinkingFunds,
@@ -80,7 +81,11 @@ interface FinanceContextValue {
   addRecurring: (input: RecurringInput) => Promise<void>;
   recordRecurring: (schedule: RecurringTransaction) => Promise<void>;
   budgets: MonthlyBudget[];
-  setBudget: (categoryId: string, limitMinor: number) => Promise<void>;
+  setBudget: (
+    categoryId: string,
+    limitMinor: number,
+    customCategoryName?: string,
+  ) => Promise<void>;
   removeBudget: (id: string) => Promise<void>;
   sinkingFunds: SinkingFund[];
   addSinkingFund: (input: SinkingFundInput) => Promise<void>;
@@ -222,9 +227,17 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     await postRecurring(db, schedule); await refresh();
   }, [db, refresh]);
 
-  const setBudget = useCallback(async (categoryId: string, limitMinor: number) => {
-    await saveBudget(db, categoryId, monthKey, limitMinor); await refresh();
-  }, [db, monthKey, refresh]);
+  const setBudget = useCallback(
+    async (categoryId: string, limitMinor: number, customCategoryName?: string) => {
+      if (customCategoryName) {
+        await saveCustomCategoryBudget(db, customCategoryName, monthKey, limitMinor);
+      } else {
+        await saveBudget(db, categoryId, monthKey, limitMinor);
+      }
+      await refresh();
+    },
+    [db, monthKey, refresh],
+  );
 
   const removeBudget = useCallback(async (id: string) => {
     await deleteBudget(db, id);

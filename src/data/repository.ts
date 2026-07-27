@@ -353,6 +353,37 @@ export async function saveBudget(db: SQLiteDatabase, categoryId: string, month: 
   );
 }
 
+export async function saveCustomCategoryBudget(
+  db: SQLiteDatabase,
+  name: string,
+  month: string,
+  limitMinor: number,
+): Promise<string> {
+  const normalizedName = name.trim().replace(/\s+/g, ' ');
+  if (normalizedName.length < 2) {
+    throw new Error('Custom category name must contain at least two characters.');
+  }
+  const categoryId = `custom-expense-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  await withDatabaseTransaction(db, async (transaction) => {
+    await transaction.runAsync(
+      `INSERT INTO categories (id, name, type, icon, color) VALUES (?, ?, 'expense', ?, ?)`,
+      categoryId,
+      normalizedName,
+      'ellipsis-horizontal',
+      '#6C756F',
+    );
+    await transaction.runAsync(
+      `INSERT INTO monthly_budgets (id, category_id, month, limit_minor)
+       VALUES (?, ?, ?, ?)`,
+      `${categoryId}-${month}`,
+      categoryId,
+      month,
+      limitMinor,
+    );
+  });
+  return categoryId;
+}
+
 export async function deleteBudget(db: SQLiteDatabase, id: string): Promise<void> {
   await db.runAsync('DELETE FROM monthly_budgets WHERE id = ?', id);
 }
