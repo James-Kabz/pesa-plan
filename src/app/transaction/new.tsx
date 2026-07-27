@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -14,40 +14,74 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { parseMoneyInput } from '@/domain/money';
-import type { TransactionType } from '@/domain/types';
+import {
+  getFastEntryDefaults,
+  getRecentAmounts,
+  getRecentTemplates,
+  orderAccountsForEntry,
+  orderCategoriesForEntry,
+} from '@/domain/fastEntry';
+import { formatMoney, parseMoneyInput } from '@/domain/money';
+import type { FinanceTransaction, TransactionType } from '@/domain/types';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function NewTransactionScreen() {
   const params = useLocalSearchParams<{ type?: string; id?: string }>();
-  const { accounts, categories, addTransaction } = useFinance();
-  const { transactions } = useFinance();
+  const { accounts, categories, transactions, addTransaction } = useFinance();
   const existing = transactions.find((transaction) => transaction.id === params.id);
   const initialType: TransactionType =
     existing?.type === 'income' || params.type === 'income' ? 'income' : 'expense';
+  const initialDefaults = getFastEntryDefaults(
+    transactions,
+    accounts,
+    categories,
+    initialType,
+  );
   const [type, setType] = useState<TransactionType>(initialType);
   const [amount, setAmount] = useState(existing ? String(existing.amountMinor / 100) : '');
   const [note, setNote] = useState(existing?.note ?? '');
-  const [accountId, setAccountId] = useState(existing?.accountId ?? accounts[0]?.id ?? '');
+  const [accountId, setAccountId] = useState(existing?.accountId ?? initialDefaults.accountId);
   const relevantCategories = useMemo(
-    () => categories.filter((category) => category.type === type),
-    [categories, type],
+    () => orderCategoriesForEntry(categories, transactions, type),
+    [categories, transactions, type],
+  );
+  const orderedAccounts = useMemo(
+    () => orderAccountsForEntry(accounts, transactions, type),
+    [accounts, transactions, type],
   );
   const [categoryId, setCategoryId] = useState(
-    existing?.categoryId ??
-      categories.find((category) => category.type === initialType)?.id ??
-      '',
+    existing?.categoryId ?? initialDefaults.categoryId,
   );
   const [saving, setSaving] = useState(false);
   const selectedAccount = accounts.find((account) => account.id === accountId);
+  const templates = useMemo(
+    () => getRecentTemplates(transactions, type),
+    [transactions, type],
+  );
+  const recentAmounts = useMemo(
+    () => getRecentAmounts(transactions, type, accountId),
+    [accountId, transactions, type],
+  );
+  const amountInputRef = useRef<TextInput>(null);
 
   function changeType(nextType: TransactionType) {
+    const defaults = getFastEntryDefaults(transactions, accounts, categories, nextType);
     setType(nextType);
-    setCategoryId(categories.find((category) => category.type === nextType)?.id ?? '');
+    setAccountId(defaults.accountId);
+    setCategoryId(defaults.categoryId);
   }
 
-  async function save() {
+  function applyTemplate(template: FinanceTransaction) {
+    setType(template.type as TransactionType);
+    setAccountId(template.accountId);
+    setCategoryId(template.categoryId);
+    setAmount(String(template.amountMinor / 100));
+    setNote(template.note ?? '');
+    amountInputRef.current?.focus();
+  }
+
+  async function save(addAnother = false) {
     const amountMinor = parseMoneyInput(amount);
     if (!amountMinor) {
       Alert.alert('Check the amount', 'Enter an amount greater than zero with up to two decimals.');
@@ -70,7 +104,14 @@ export default function NewTransactionScreen() {
         occurredAt: existing?.occurredAt ?? new Date().toISOString(),
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.back();
+      if (addAnother && !existing) {
+        setAmount('');
+        setNote('');
+        setSaving(false);
+        requestAnimationFrame(() => amountInputRef.current?.focus());
+      } else {
+        router.back();
+      }
     } catch {
       Alert.alert('Could not save', 'Your transaction was not saved. Please try again.');
       setSaving(false);
@@ -113,10 +154,55 @@ export default function NewTransactionScreen() {
             ))}
           </View>
 
+          {!existing && templates.length ? (
+            <>
+              <View style={styles.sectionHeading}>
+                <Text style={styles.label}>Use again</Text>
+                <Text style={styles.sectionHint}>Tap to prefill</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.templates}>
+                  {templates.map((template) => (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Use ${template.note || template.categoryName}, ${formatMoney(template.amountMinor, template.currency)} again`}
+                      key={template.id}
+                      onPress={() => applyTemplate(template)}
+                      style={({ pressed }) => [
+                        styles.templateCard,
+                        pressed && styles.savePressed,
+                      ]}
+                    >
+                      <View style={styles.templateTop}>
+                        <View style={styles.templateIcon}>
+                          <Ionicons
+                            name={template.categoryIcon as keyof typeof Ionicons.glyphMap}
+                            size={18}
+                            color={colors.primary}
+                          />
+                        </View>
+                        <Text style={styles.templateAmount}>
+                          {formatMoney(template.amountMinor, template.currency)}
+                        </Text>
+                      </View>
+                      <Text numberOfLines={1} style={styles.templateTitle}>
+                        {template.note || template.categoryName}
+                      </Text>
+                      <Text numberOfLines={1} style={styles.templateMeta}>
+                        {template.accountName} · {template.categoryName}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </ScrollView>
+            </>
+          ) : null}
+
           <Text style={styles.amountLabel}>Amount</Text>
           <View style={styles.amountRow}>
             <Text style={styles.currency}>{selectedAccount?.currency ?? 'KES'}</Text>
             <TextInput
+              ref={amountInputRef}
               accessibilityLabel="Transaction amount"
               autoFocus
               value={amount}
@@ -127,11 +213,31 @@ export default function NewTransactionScreen() {
               style={styles.amountInput}
             />
           </View>
+          {!existing && recentAmounts.length ? (
+            <View style={styles.amountShortcuts}>
+              {recentAmounts.map((amountMinor) => (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use recent amount ${formatMoney(
+                    amountMinor,
+                    selectedAccount?.currency,
+                  )}`}
+                  key={amountMinor}
+                  onPress={() => setAmount(String(amountMinor / 100))}
+                  style={styles.amountShortcut}
+                >
+                  <Text style={styles.amountShortcutText}>
+                    {formatMoney(amountMinor, selectedAccount?.currency)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
 
           <Text style={styles.label}>Account</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.chips}>
-              {accounts.map((account) => (
+              {orderedAccounts.map((account) => (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`${account.name} account`}
@@ -155,7 +261,12 @@ export default function NewTransactionScreen() {
             </View>
           </ScrollView>
 
-          <Text style={styles.label}>Category</Text>
+          <View style={styles.sectionHeading}>
+            <Text style={styles.label}>Category</Text>
+            {!existing && transactions.length ? (
+              <Text style={styles.sectionHint}>Recent first</Text>
+            ) : null}
+          </View>
           <View style={styles.categoryGrid}>
             {relevantCategories.map((category) => {
               const selected = category.id === categoryId;
@@ -206,13 +317,29 @@ export default function NewTransactionScreen() {
             accessibilityLabel={existing ? 'Update transaction' : `Save ${type}`}
             accessibilityState={{ disabled: saving }}
             disabled={saving}
-            onPress={() => void save()}
+            onPress={() => void save(false)}
             style={({ pressed }) => [styles.save, (pressed || saving) && styles.savePressed]}
           >
             <Text style={styles.saveText}>
               {saving ? 'Saving…' : existing ? 'Update transaction' : `Save ${type}`}
             </Text>
           </Pressable>
+          {!existing ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Save ${type} and add another`}
+              accessibilityState={{ disabled: saving }}
+              disabled={saving}
+              onPress={() => void save(true)}
+              style={({ pressed }) => [
+                styles.saveAnother,
+                (pressed || saving) && styles.savePressed,
+              ]}
+            >
+              <Ionicons name="add-circle-outline" size={19} color={colors.primary} />
+              <Text style={styles.saveAnotherText}>Save & add another</Text>
+            </Pressable>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -271,6 +398,38 @@ const styles = StyleSheet.create({
   segmentTextSelected: {
     color: colors.primary,
   },
+  sectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  sectionHint: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: spacing.md,
+  },
+  templates: { flexDirection: 'row', gap: spacing.sm },
+  templateCard: {
+    width: 196,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  templateTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  templateIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  templateAmount: { color: colors.ink, fontSize: 12, fontWeight: '800' },
+  templateTitle: { color: colors.ink, fontSize: 13, fontWeight: '800', marginTop: spacing.md },
+  templateMeta: { color: colors.muted, fontSize: 10, marginTop: 3 },
   amountLabel: {
     color: colors.muted,
     fontSize: 12,
@@ -296,6 +455,22 @@ const styles = StyleSheet.create({
     minWidth: 120,
     maxWidth: 250,
   },
+  amountShortcuts: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  amountShortcut: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  amountShortcutText: { color: colors.primary, fontSize: 11, fontWeight: '800' },
   label: {
     color: colors.ink,
     fontSize: 14,
@@ -393,4 +568,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textTransform: 'capitalize',
   },
+  saveAnother: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: spacing.lg,
+    marginTop: spacing.md,
+  },
+  saveAnotherText: { color: colors.primary, fontSize: 14, fontWeight: '800' },
 });

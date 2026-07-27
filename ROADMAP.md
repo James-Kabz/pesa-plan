@@ -104,7 +104,9 @@ Status: **Started**
 - [x] Upcoming schedule review with explicit confirmation before posting
 - [x] Highest-use budget watch and main-currency-safe summaries
 - [x] Privacy masking across all Today monetary values
-- [ ] Faster transaction entry using recent accounts, categories, and amounts
+- [x] Faster transaction entry using recent accounts, categories, and amounts
+- [x] One-tap reusable templates from recent confirmed transactions
+- [x] Save-and-add-another flow that preserves useful choices
 - [ ] Local category suggestions learned from confirmed transaction descriptions
 - [ ] Global transaction search with useful filters
 

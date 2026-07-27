@@ -10,7 +10,9 @@ Version 1.1 is the current signed and device-verified Android release. Version
 currency, real accounts and opening balances, expected monthly income, and a
 basic budget. Its Smart Today screen adds one explainable next action, upcoming
 schedules, budget pacing, and expected-versus-recorded income without posting
-anything automatically. Version 1.1 includes:
+anything automatically. Faster entry adds recent templates, recent amounts,
+last-used account/category defaults, and a save-and-add-another workflow.
+Version 1.1 includes:
 
 - an Expo + React Native + TypeScript foundation;
 - a persistent SQLite database with migrations;
