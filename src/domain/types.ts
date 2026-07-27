@@ -154,6 +154,8 @@ export interface DebtPayment {
   debtName?: string;
 }
 
+export type DebtStrategy = 'snowball' | 'avalanche';
+
 export interface CategorySpend {
   categoryId: string;
   categoryName: string;
@@ -186,6 +188,7 @@ export interface AppPreferences {
   remindSchedules: boolean;
   remindPaydays: boolean;
   remindWeeklyReview: boolean;
+  debtStrategy: DebtStrategy;
 }
 
 export type ReminderPreferenceKey =

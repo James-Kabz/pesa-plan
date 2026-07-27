@@ -31,6 +31,7 @@ import {
   saveBudget,
   saveCustomCategoryBudget,
   saveReminderPreference,
+  saveDebtStrategy,
   completeOnboarding,
   getAppPreferences,
   listExpectedIncome,
@@ -392,5 +393,11 @@ describe('finance repository integration', () => {
       remindPaydays: false,
       remindWeeklyReview: true,
     });
+  });
+
+  it('persists the selected debt payoff strategy', async () => {
+    expect((await getAppPreferences(db)).debtStrategy).toBe('avalanche');
+    await saveDebtStrategy(db, 'snowball');
+    expect((await getAppPreferences(db)).debtStrategy).toBe('snowball');
   });
 });

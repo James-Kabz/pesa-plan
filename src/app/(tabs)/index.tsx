@@ -33,6 +33,8 @@ export default function DashboardScreen() {
     recurring,
     budgets,
     savingsGoals,
+    debts,
+    debtPayments,
     recordRecurring,
   } = useFinance();
   const [amountsVisible, setAmountsVisible] = useState(true);
@@ -83,6 +85,9 @@ export default function DashboardScreen() {
         expectedIncome,
         monthlySummary,
         savingsGoals,
+        debts,
+        debtPayments,
+        debtStrategy: preferences.debtStrategy,
       }),
     [
       accounts,
@@ -92,6 +97,9 @@ export default function DashboardScreen() {
       preferences.mainCurrency,
       recurring,
       savingsGoals,
+      debts,
+      debtPayments,
+      preferences.debtStrategy,
       dayKey,
     ],
   );
@@ -143,6 +151,15 @@ export default function DashboardScreen() {
         break;
       case 'review_savings':
         openSavingsGuidance(savingsGuidance);
+        break;
+      case 'review_debt':
+        router.push({
+          pathname: '/debt/editor',
+          params: {
+            id: item.itemId,
+            suggestedMinor: item.amountMinor,
+          },
+        });
         break;
       default:
         router.push('/transaction/new');

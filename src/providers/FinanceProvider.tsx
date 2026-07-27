@@ -27,6 +27,7 @@ import type {
   OnboardingDraft,
   OnboardingCompletion,
   ReminderPreferenceKey,
+  DebtStrategy,
 } from '@/domain/types';
 import {
   createTransaction,
@@ -66,6 +67,7 @@ import {
   restartOnboarding,
   completeOnboarding,
   saveReminderPreference,
+  saveDebtStrategy,
 } from '@/data/repository';
 
 interface FinanceContextValue {
@@ -113,6 +115,7 @@ interface FinanceContextValue {
   restartSetup: () => Promise<void>;
   completeSetup: (input: OnboardingCompletion) => Promise<void>;
   setReminderPreference: (key: ReminderPreferenceKey, value: boolean) => Promise<void>;
+  setDebtStrategy: (strategy: DebtStrategy) => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
@@ -142,6 +145,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     remindSchedules: true,
     remindPaydays: true,
     remindWeeklyReview: true,
+    debtStrategy: 'avalanche',
   });
   const [expectedIncome, setExpectedIncome] = useState<ExpectedIncome[]>([]);
   const monthKey = new Date().toISOString().slice(0, 7);
@@ -327,6 +331,14 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     [db],
   );
 
+  const setDebtStrategy = useCallback(
+    async (strategy: DebtStrategy) => {
+      await saveDebtStrategy(db, strategy);
+      setPreferences((current) => ({ ...current, debtStrategy: strategy }));
+    },
+    [db],
+  );
+
   const monthlySummary = useMemo(
     () => summarizeTransactions(
       monthlyTransactions.filter((item) => item.currency === preferences.mainCurrency),
@@ -381,6 +393,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       restartSetup,
       completeSetup,
       setReminderPreference,
+      setDebtStrategy,
     }),
     [
       accounts,
@@ -423,6 +436,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       restartSetup,
       completeSetup,
       setReminderPreference,
+      setDebtStrategy,
     ],
   );
 

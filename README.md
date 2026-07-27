@@ -22,7 +22,10 @@ turns each remaining category balance into an explainable daily guide, highlight
 fast or exhausted categories, and projects month-end spending from confirmed
 activity. Savings guidance compares real savings-account balances with goal
 allocations, recommends an emergency-first next step, and never moves or assigns
-money without confirmation.
+money without confirmation. Debt guidance remembers the chosen avalanche or
+snowball strategy, accounts for payments already recorded this month, covers
+remaining minimums before recommending extra payments, and flags minimums that
+cannot beat monthly interest.
 Version 1.1 includes:
 
 - an Expo + React Native + TypeScript foundation;

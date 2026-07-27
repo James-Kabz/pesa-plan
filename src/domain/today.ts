@@ -1,11 +1,15 @@
 import type {
   Account,
+  Debt,
+  DebtPayment,
+  DebtStrategy,
   ExpectedIncome,
   MonthlyBudget,
   MonthlySummary,
   RecurringTransaction,
   SavingsGoal,
 } from './types';
+import { getDebtGuidance } from './debtGuidance';
 import { getSavingsGuidance } from './savingsGuidance';
 
 export type TodayAction =
@@ -15,6 +19,7 @@ export type TodayAction =
   | 'create_budget'
   | 'create_goal'
   | 'review_savings'
+  | 'review_debt'
   | 'add_transaction';
 
 export interface TodayPriority {
@@ -29,6 +34,7 @@ export interface TodayPriority {
     | 'savings_unallocated'
     | 'savings_shortfall'
     | 'savings_funding'
+    | 'debt_payment'
     | 'all_clear';
   tone: 'urgent' | 'warning' | 'positive' | 'neutral';
   title: string;
@@ -69,6 +75,9 @@ export interface TodayInput {
   expectedIncome: ExpectedIncome[];
   monthlySummary: MonthlySummary;
   savingsGoals: SavingsGoal[];
+  debts: Debt[];
+  debtPayments: DebtPayment[];
+  debtStrategy: DebtStrategy;
 }
 
 function startOfLocalDay(date: Date): number {
@@ -352,6 +361,34 @@ export function buildTodayPriority(input: TodayInput): TodayPriority {
       action: 'review_savings',
       actionLabel: 'Review savings',
       itemId: savingsGuidance.goalId,
+    };
+  }
+
+  const debtGuidance = getDebtGuidance(
+    input.debts,
+    input.debtPayments,
+    input.debtStrategy,
+    input.monthlySummary.netMinor,
+    input.now,
+  );
+  if (
+    debtGuidance.action === 'raise_minimum' ||
+    debtGuidance.action === 'pay_minimum' ||
+    debtGuidance.action === 'pay_extra'
+  ) {
+    return {
+      kind: 'debt_payment',
+      tone:
+        debtGuidance.action === 'raise_minimum' ? 'warning' : 'neutral',
+      title: debtGuidance.title,
+      reason: debtGuidance.reason,
+      action: 'review_debt',
+      actionLabel:
+        debtGuidance.action === 'pay_extra'
+          ? 'Make extra payment'
+          : 'Review payment',
+      itemId: debtGuidance.debtId,
+      amountMinor: debtGuidance.suggestedAmountMinor,
     };
   }
 

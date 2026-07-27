@@ -8,7 +8,10 @@ import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function DebtEditorScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, suggestedMinor } = useLocalSearchParams<{
+    id?: string;
+    suggestedMinor?: string;
+  }>();
   const { debts, addDebt, payDebt, preferences } = useFinance();
   const debt = debts.find((item) => item.id === id);
   const [name, setName] = useState('');
@@ -16,21 +19,45 @@ export default function DebtEditorScreen() {
   const [balance, setBalance] = useState('');
   const [apr, setApr] = useState('');
   const [minimum, setMinimum] = useState('');
-  const [payment, setPayment] = useState('');
+  const [dueDay, setDueDay] = useState('');
+  const [payment, setPayment] = useState(() => {
+    const minor = Number(suggestedMinor);
+    return Number.isFinite(minor) && minor > 0
+      ? (minor / 100).toFixed(2)
+      : '';
+  });
   const [saving, setSaving] = useState(false);
 
   async function submit() {
+    if (debt) {
+      const amountMinor = parseMoneyInput(payment);
+      if (!amountMinor) {
+        Alert.alert('Check the details', 'Enter a payment greater than zero.');
+        return;
+      }
+      const appliedMinor = Math.min(amountMinor, debt.balanceMinor);
+      Alert.alert(
+        `Record payment to ${debt.name}?`,
+        `This will reduce the debt by ${formatMoney(appliedMinor, preferences.mainCurrency)}. It will not move money automatically from an account.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Record payment',
+            onPress: () => void recordPayment(appliedMinor),
+          },
+        ],
+      );
+      return;
+    }
+
     try {
       setSaving(true);
-      if (debt) {
-        const amountMinor = parseMoneyInput(payment);
-        if (!amountMinor) throw new Error('invalid');
-        await payDebt(debt.id, amountMinor);
-      } else {
+      {
         const balanceMinor = parseMoneyInput(balance);
         const minimumPaymentMinor = minimum.trim() ? parseMoneyInput(minimum) : 0;
         const aprNumber = Number(apr || 0);
-        if (!name.trim() || !balanceMinor || minimumPaymentMinor === null || !Number.isFinite(aprNumber) || aprNumber < 0) {
+        const dueDayNumber = dueDay.trim() ? Number(dueDay) : undefined;
+        if (!name.trim() || !balanceMinor || minimumPaymentMinor === null || !Number.isFinite(aprNumber) || aprNumber < 0 || (dueDayNumber !== undefined && (!Number.isInteger(dueDayNumber) || dueDayNumber < 1 || dueDayNumber > 31))) {
           throw new Error('invalid');
         }
         await addDebt({
@@ -39,12 +66,31 @@ export default function DebtEditorScreen() {
           balanceMinor,
           aprBasisPoints: Math.round(aprNumber * 100),
           minimumPaymentMinor,
+          dueDay: dueDayNumber,
         });
       }
       router.back();
     } catch {
       setSaving(false);
-      Alert.alert('Check the details', debt ? 'Enter a payment greater than zero.' : 'Enter a name, balance, valid APR, and minimum payment.');
+      Alert.alert(
+        'Check the details',
+        'Enter a name, balance, valid APR, minimum payment, and—if used—a due day from 1 to 31.',
+      );
+    }
+  }
+
+  async function recordPayment(amountMinor: number) {
+    try {
+      setSaving(true);
+      await payDebt(debt!.id, amountMinor);
+      Alert.alert(
+        'Payment recorded',
+        `${formatMoney(amountMinor, preferences.mainCurrency)} was applied to ${debt!.name}.`,
+        [{ text: 'Done', onPress: () => router.back() }],
+      );
+    } catch {
+      setSaving(false);
+      Alert.alert('Could not record payment', 'Nothing was changed. Please try again.');
     }
   }
 
@@ -85,6 +131,8 @@ export default function DebtEditorScreen() {
                 <TextInput accessibilityLabel="Minimum payment" value={minimum} onChangeText={setMinimum} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#98A19B" style={styles.input} />
               </View>
             </View>
+            <Text style={styles.label}>Monthly due day (optional)</Text>
+            <TextInput accessibilityLabel="Monthly due day" value={dueDay} onChangeText={setDueDay} keyboardType="number-pad" placeholder="e.g. 25" placeholderTextColor="#98A19B" style={styles.input} />
           </>
         )}
         <Pressable accessibilityRole="button" accessibilityLabel={debt ? 'Record debt payment' : 'Add debt'} accessibilityState={{ disabled: saving }} disabled={saving} style={[styles.save, saving && styles.disabled]} onPress={() => void submit()}>

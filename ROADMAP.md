@@ -115,7 +115,7 @@ Status: **Started**
 
 ### Stage 9 — Local planning assistance
 
-Status: **Started**
+Status: **Complete**
 
 - [x] Confirmed recurring-pattern suggestions without automatic posting
 - [x] Strict weekly and monthly detection with amount-stability and duplicate safeguards
@@ -130,7 +130,9 @@ Status: **Started**
 - [x] Savings guidance based on real account balances and goal allocations
 - [x] Emergency-first, currency-safe allocation and funding recommendations
 - [x] Shortfall detection, preselected accounts, and explicit confirmation flows
-- [ ] Clear debt-payment guidance using the chosen payoff strategy
+- [x] Clear debt-payment guidance using the chosen payoff strategy
+- [x] Month-aware minimum tracking, due-day priority, and affordable extra-payment guidance
+- [x] Negative-amortization warnings, remembered strategy, and confirmed payment recording
 
 ### Stage 10 — Monthly review and Version 2 release
 

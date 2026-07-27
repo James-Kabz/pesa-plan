@@ -6,6 +6,8 @@ import type {
   MonthlySummary,
   RecurringTransaction,
   SavingsGoal,
+  Debt,
+  DebtPayment,
 } from './types';
 import {
   buildTodayPriority,
@@ -42,6 +44,9 @@ function input(overrides: Partial<Parameters<typeof buildTodayPriority>[0]> = {}
     expectedIncome: [] as ExpectedIncome[],
     monthlySummary: summary,
     savingsGoals: [] as SavingsGoal[],
+    debts: [] as Debt[],
+    debtPayments: [] as DebtPayment[],
+    debtStrategy: 'avalanche' as const,
     ...overrides,
   };
 }
@@ -251,6 +256,42 @@ describe('Today priority', () => {
     ).toMatchObject({
       kind: 'savings_shortfall',
       amountMinor: 10_000,
+    });
+  });
+
+  it('surfaces the next debt payment after higher-priority planning issues', () => {
+    const budget = {
+      id: 'food',
+      categoryId: 'food',
+      categoryName: 'Food',
+      categoryIcon: 'restaurant-outline',
+      limitMinor: 100_000,
+      spentMinor: 20_000,
+      month: '2026-07',
+    };
+    const debt = {
+      id: 'loan',
+      name: 'Small loan',
+      creditor: null,
+      originalBalanceMinor: 50_000,
+      balanceMinor: 30_000,
+      aprBasisPoints: 1_200,
+      minimumPaymentMinor: 3_000,
+      dueDay: 25,
+    } as Debt;
+    expect(
+      buildTodayPriority(
+        input({
+          budgets: [budget],
+          debts: [debt],
+          monthlySummary: { ...summary, incomeMinor: 10_000, netMinor: 10_000 },
+        }),
+      ),
+    ).toMatchObject({
+      kind: 'debt_payment',
+      action: 'review_debt',
+      itemId: 'loan',
+      amountMinor: 3_000,
     });
   });
 });

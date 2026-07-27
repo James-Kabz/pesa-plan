@@ -1,16 +1,33 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
+import { getDebtGuidance } from '@/domain/debtGuidance';
 import { estimatePayoffMonths, formatMoney, orderDebts } from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function DebtScreen() {
-  const { debts, debtPayments, preferences } = useFinance();
-  const [strategy, setStrategy] = useState<'snowball' | 'avalanche'>('avalanche');
+  const {
+    debts,
+    debtPayments,
+    monthlySummary,
+    preferences,
+    setDebtStrategy,
+  } = useFinance();
+  const strategy = preferences.debtStrategy;
   const ordered = useMemo(() => orderDebts(debts, strategy), [debts, strategy]);
+  const guidance = useMemo(
+    () =>
+      getDebtGuidance(
+        debts,
+        debtPayments,
+        strategy,
+        monthlySummary.netMinor,
+      ),
+    [debtPayments, debts, monthlySummary.netMinor, strategy],
+  );
   const total = debts.reduce((sum, debt) => sum + debt.balanceMinor, 0);
   const minimums = debts.reduce((sum, debt) => sum + debt.minimumPaymentMinor, 0);
 
@@ -41,7 +58,7 @@ export default function DebtScreen() {
             accessibilityLabel={`${option} debt strategy`}
             accessibilityState={{ selected: strategy === option }}
             key={option}
-            onPress={() => setStrategy(option)}
+            onPress={() => void setDebtStrategy(option)}
             style={[styles.segmentOption, strategy === option && styles.segmentSelected]}
           >
             <Text style={[styles.segmentText, strategy === option && styles.segmentTextSelected]}>
@@ -55,6 +72,65 @@ export default function DebtScreen() {
           ? 'Highest interest first to reduce total interest.'
           : 'Smallest balance first for quicker wins.'}
       </Text>
+
+      <View
+        accessibilityLabel={`Debt guidance. ${guidance.title}. ${guidance.reason}`}
+        style={[
+          styles.guidance,
+          guidance.action === 'raise_minimum' && styles.guidanceWarning,
+        ]}
+      >
+        <View style={styles.guidanceIcon}>
+          <Ionicons
+            name={
+              guidance.action === 'raise_minimum'
+                ? 'warning-outline'
+                : guidance.action === 'stay_on_plan'
+                  ? 'checkmark-outline'
+                  : 'navigate-outline'
+            }
+            size={20}
+            color={
+              guidance.action === 'raise_minimum'
+                ? colors.warning
+                : colors.primary
+            }
+          />
+        </View>
+        <View style={styles.guidanceBody}>
+          <Text style={styles.guidanceEyebrow}>YOUR NEXT DEBT STEP</Text>
+          <Text style={styles.guidanceTitle}>{guidance.title}</Text>
+          <Text style={styles.guidanceReason}>{guidance.reason}</Text>
+          {guidance.suggestedAmountMinor ? (
+            <Text style={styles.guidanceAmount}>
+              Suggested now:{' '}
+              {formatMoney(
+                guidance.suggestedAmountMinor,
+                preferences.mainCurrency,
+              )}
+            </Text>
+          ) : null}
+          {guidance.action === 'add_debt' ? (
+            <GuidanceButton
+              label="Add a debt"
+              onPress={() => router.push('/debt/editor')}
+            />
+          ) : guidance.suggestedAmountMinor && guidance.debtId ? (
+            <GuidanceButton
+              label={`Pay ${guidance.debtName}`}
+              onPress={() =>
+                router.push({
+                  pathname: '/debt/editor',
+                  params: {
+                    id: guidance.debtId,
+                    suggestedMinor: guidance.suggestedAmountMinor,
+                  },
+                })
+              }
+            />
+          ) : null}
+        </View>
+      </View>
 
       {ordered.map((debt, index) => {
         const paid = debt.originalBalanceMinor - debt.balanceMinor;
@@ -121,6 +197,26 @@ export default function DebtScreen() {
   );
 }
 
+function GuidanceButton({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={styles.guidanceButton}
+    >
+      <Text style={styles.guidanceButtonText}>{label}</Text>
+      <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: spacing.sm, marginBottom: spacing.xl },
   eyebrow: { color: colors.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
@@ -136,6 +232,16 @@ const styles = StyleSheet.create({
   segmentText: { color: colors.muted, fontSize: 13, fontWeight: '700' },
   segmentTextSelected: { color: colors.primary },
   hint: { color: colors.muted, fontSize: 12, marginVertical: spacing.md },
+  guidance: { flexDirection: 'row', backgroundColor: colors.primarySoft, borderRadius: radius.md, borderWidth: 1, borderColor: '#C4DCCE', padding: spacing.lg, marginBottom: spacing.lg },
+  guidanceWarning: { backgroundColor: '#FFF4E2', borderColor: '#E8C993' },
+  guidanceIcon: { width: 36, height: 36, borderRadius: radius.pill, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
+  guidanceBody: { flex: 1 },
+  guidanceEyebrow: { color: colors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
+  guidanceTitle: { color: colors.ink, fontSize: 16, fontWeight: '800', marginTop: spacing.xs },
+  guidanceReason: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: spacing.xs },
+  guidanceAmount: { color: colors.ink, fontSize: 13, fontWeight: '800', marginTop: spacing.sm },
+  guidanceButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.primary, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, marginTop: spacing.md },
+  guidanceButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
   card: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, marginBottom: spacing.md },
   rank: { width: 30, height: 30, borderRadius: radius.pill, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
   rankText: { color: colors.primary, fontSize: 12, fontWeight: '800' },

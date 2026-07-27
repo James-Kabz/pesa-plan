@@ -771,6 +771,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   remindSchedules: true,
   remindPaydays: true,
   remindWeeklyReview: true,
+  debtStrategy: 'avalanche',
 };
 
 export async function getAppPreferences(db: SQLiteDatabase): Promise<AppPreferences> {
@@ -784,7 +785,8 @@ export async function getAppPreferences(db: SQLiteDatabase): Promise<AppPreferen
        'reminders_enabled',
        'remind_schedules',
        'remind_paydays',
-       'remind_weekly_review'
+       'remind_weekly_review',
+       'debt_strategy'
      )`,
   );
   const settings = Object.fromEntries(rows.map((row) => [row.key, row.value]));
@@ -811,6 +813,8 @@ export async function getAppPreferences(db: SQLiteDatabase): Promise<AppPreferen
     remindSchedules: settings.remind_schedules !== 'false',
     remindPaydays: settings.remind_paydays !== 'false',
     remindWeeklyReview: settings.remind_weekly_review !== 'false',
+    debtStrategy:
+      settings.debt_strategy === 'snowball' ? 'snowball' : 'avalanche',
   };
 }
 
@@ -836,6 +840,13 @@ export async function saveReminderPreference(
   value: boolean,
 ): Promise<void> {
   await setSetting(db, REMINDER_SETTING_KEYS[key], String(value));
+}
+
+export async function saveDebtStrategy(
+  db: SQLiteDatabase,
+  strategy: AppPreferences['debtStrategy'],
+): Promise<void> {
+  await setSetting(db, 'debt_strategy', strategy);
 }
 
 export async function saveOnboardingProgress(
