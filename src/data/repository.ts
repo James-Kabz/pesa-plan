@@ -689,7 +689,7 @@ export async function listAllDebtPayments(db: SQLiteDatabase): Promise<DebtPayme
     SELECT p.id, p.debt_id AS debtId, d.name AS debtName,
       p.amount_minor AS amountMinor, p.paid_at AS paidAt, p.note
     FROM debt_payments p JOIN debts d ON d.id = p.debt_id
-    ORDER BY p.paid_at DESC LIMIT 20
+    ORDER BY p.paid_at DESC
   `);
 }
 

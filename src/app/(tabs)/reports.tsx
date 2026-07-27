@@ -1,4 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { debtToIncomeRatio, formatMoney } from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
@@ -29,6 +31,25 @@ export default function ReportsScreen() {
       <Text style={styles.subtitle}>
         {preferences.mainCurrency}-based insight from your local ledger.
       </Text>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Open this month's review"
+        onPress={() => router.push('/reports/monthly-review')}
+        style={({ pressed }) => [styles.reviewCard, pressed && styles.pressed]}
+      >
+        <View style={styles.reviewIcon}>
+          <Ionicons name="sparkles-outline" size={22} color={colors.primary} />
+        </View>
+        <View style={styles.reviewBody}>
+          <Text style={styles.reviewEyebrow}>NEW · MONTHLY REVIEW</Text>
+          <Text style={styles.reviewTitle}>See the story behind this month</Text>
+          <Text style={styles.reviewText}>
+            Income, spending, real savings, debt progress, and what changed.
+          </Text>
+        </View>
+        <Ionicons name="arrow-forward" size={20} color={colors.primary} />
+      </Pressable>
 
       <View style={styles.grid}>
         <Metric label="Savings rate" value={`${monthlySummary.savingsRate.toFixed(1)}%`} />
@@ -121,6 +142,13 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1.5, marginTop: spacing.sm },
   title: { color: colors.ink, fontSize: 30, fontWeight: '800', letterSpacing: -0.8 },
   subtitle: { color: colors.muted, fontSize: 15, marginTop: spacing.sm, marginBottom: spacing.xl },
+  reviewCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primarySoft, borderRadius: radius.lg, borderWidth: 1, borderColor: '#C4DCCE', padding: spacing.lg, marginBottom: spacing.xl },
+  reviewIcon: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
+  reviewBody: { flex: 1, paddingRight: spacing.sm },
+  reviewEyebrow: { color: colors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+  reviewTitle: { color: colors.ink, fontSize: 15, fontWeight: '800', marginTop: spacing.xs },
+  reviewText: { color: colors.muted, fontSize: 11, lineHeight: 16, marginTop: spacing.xs },
+  pressed: { opacity: 0.7 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   metric: { width: '48%', minHeight: 118, backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, justifyContent: 'space-between' },
   metricLabel: { color: colors.muted, fontSize: 12 },

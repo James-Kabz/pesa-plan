@@ -60,6 +60,7 @@ export default function RootLayout() {
                 name="debt/editor"
                 options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
               />
+              <Stack.Screen name="reports/monthly-review" />
               <Stack.Screen name="settings/index" />
             </Stack>
           </FinanceProvider>

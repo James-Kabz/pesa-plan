@@ -25,7 +25,9 @@ allocations, recommends an emergency-first next step, and never moves or assigns
 money without confirmation. Debt guidance remembers the chosen avalanche or
 snowball strategy, accounts for payments already recorded this month, covers
 remaining minimums before recommending extra payments, and flags minimums that
-cannot beat monthly interest.
+cannot beat monthly interest. The monthly review turns confirmed local records
+into a plain-language story covering cash flow, real savings, debt progress,
+net worth, largest spending, and exact changes from the previous month.
 Version 1.1 includes:
 
 - an Expo + React Native + TypeScript foundation;

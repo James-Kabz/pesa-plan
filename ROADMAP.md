@@ -136,10 +136,10 @@ Status: **Complete**
 
 ### Stage 10 — Monthly review and Version 2 release
 
-Status: **Planned**
+Status: **Started**
 
-- [ ] Plain-language monthly review: income, spending, savings, debt, and changes
-- [ ] Deterministic insights that explain the numbers behind every suggestion
+- [x] Plain-language monthly review: income, spending, savings, debt, and changes
+- [x] Deterministic insights that explain the numbers behind every suggestion
 - [ ] Empty-state, accessibility, font-scaling, and error-message polish
 - [ ] Migration, backup/restore, clean-install, and upgrade release gates
 - [ ] Signed Android Version 2 build and physical-device checklist
