@@ -21,6 +21,10 @@ import {
   orderAccountsForEntry,
   orderCategoriesForEntry,
 } from '@/domain/fastEntry';
+import {
+  normalizeDescription,
+  suggestCategory,
+} from '@/domain/categorySuggestion';
 import { formatMoney, parseMoneyInput } from '@/domain/money';
 import type { FinanceTransaction, TransactionType } from '@/domain/types';
 import { useFinance } from '@/providers/FinanceProvider';
@@ -54,6 +58,7 @@ export default function NewTransactionScreen() {
     existing?.categoryId ?? initialDefaults.categoryId,
   );
   const [saving, setSaving] = useState(false);
+  const [dismissedSuggestionKey, setDismissedSuggestionKey] = useState('');
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const templates = useMemo(
     () => getRecentTemplates(transactions, type),
@@ -64,12 +69,24 @@ export default function NewTransactionScreen() {
     [accountId, transactions, type],
   );
   const amountInputRef = useRef<TextInput>(null);
+  const categorySuggestion = useMemo(
+    () => suggestCategory(note, transactions, categories, type),
+    [categories, note, transactions, type],
+  );
+  const normalizedNote = normalizeDescription(note);
+  const visibleSuggestion =
+    categorySuggestion &&
+    categorySuggestion.categoryId !== categoryId &&
+    dismissedSuggestionKey !== normalizedNote
+      ? categorySuggestion
+      : null;
 
   function changeType(nextType: TransactionType) {
     const defaults = getFastEntryDefaults(transactions, accounts, categories, nextType);
     setType(nextType);
     setAccountId(defaults.accountId);
     setCategoryId(defaults.categoryId);
+    setDismissedSuggestionKey('');
   }
 
   function applyTemplate(template: FinanceTransaction) {
@@ -78,7 +95,14 @@ export default function NewTransactionScreen() {
     setCategoryId(template.categoryId);
     setAmount(String(template.amountMinor / 100));
     setNote(template.note ?? '');
+    setDismissedSuggestionKey('');
     amountInputRef.current?.focus();
+  }
+
+  function applyCategorySuggestion() {
+    if (!visibleSuggestion) return;
+    setCategoryId(visibleSuggestion.categoryId);
+    void Haptics.selectionAsync();
   }
 
   async function save(addAnother = false) {
@@ -261,6 +285,62 @@ export default function NewTransactionScreen() {
             </View>
           </ScrollView>
 
+          <Text style={styles.label}>Description (optional)</Text>
+          <TextInput
+            accessibilityLabel="Transaction note"
+            value={note}
+            onChangeText={setNote}
+            placeholder="e.g. Naivas, rent, fuel"
+            placeholderTextColor="#98A19B"
+            style={styles.note}
+          />
+
+          {visibleSuggestion ? (
+            <View style={styles.suggestion}>
+              <View
+                style={[
+                  styles.suggestionIcon,
+                  { backgroundColor: `${visibleSuggestion.categoryColor}18` },
+                ]}
+              >
+                <Ionicons
+                  name={visibleSuggestion.categoryIcon as keyof typeof Ionicons.glyphMap}
+                  size={21}
+                  color={visibleSuggestion.categoryColor}
+                />
+              </View>
+              <View style={styles.suggestionContent}>
+                <Text style={styles.suggestionEyebrow}>LOCAL SUGGESTION</Text>
+                <Text style={styles.suggestionTitle}>{visibleSuggestion.categoryName}</Text>
+                <Text style={styles.suggestionReason}>
+                  {visibleSuggestion.reason === 'same_description'
+                    ? `You used this category for the same description before.`
+                    : `Based on ${visibleSuggestion.matchCount} similar ${
+                        visibleSuggestion.matchCount === 1 ? 'entry' : 'entries'
+                      } you categorized.`}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use suggested ${visibleSuggestion.categoryName} category`}
+                  onPress={applyCategorySuggestion}
+                  style={styles.useSuggestion}
+                >
+                  <Text style={styles.useSuggestionText}>Use suggestion</Text>
+                  <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+                </Pressable>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss category suggestion"
+                hitSlop={8}
+                onPress={() => setDismissedSuggestionKey(normalizedNote)}
+                style={styles.dismissSuggestion}
+              >
+                <Ionicons name="close" size={18} color={colors.muted} />
+              </Pressable>
+            </View>
+          ) : null}
+
           <View style={styles.sectionHeading}>
             <Text style={styles.label}>Category</Text>
             {!existing && transactions.length ? (
@@ -301,16 +381,6 @@ export default function NewTransactionScreen() {
               );
             })}
           </View>
-
-          <Text style={styles.label}>Note (optional)</Text>
-          <TextInput
-            accessibilityLabel="Transaction note"
-            value={note}
-            onChangeText={setNote}
-            placeholder="What was this for?"
-            placeholderTextColor="#98A19B"
-            style={styles.note}
-          />
 
           <Pressable
             accessibilityRole="button"
@@ -551,6 +621,63 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     color: colors.ink,
     fontSize: 15,
+  },
+  suggestion: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: '#BFD8CA',
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
+  },
+  suggestionIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  suggestionContent: {
+    flex: 1,
+  },
+  suggestionEyebrow: {
+    color: colors.primary,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+  },
+  suggestionTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '800',
+    marginTop: 3,
+  },
+  suggestionReason: {
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 3,
+  },
+  useSuggestion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+  },
+  useSuggestionText: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  dismissSuggestion: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   save: {
     backgroundColor: colors.primary,

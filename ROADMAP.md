@@ -107,7 +107,9 @@ Status: **Started**
 - [x] Faster transaction entry using recent accounts, categories, and amounts
 - [x] One-tap reusable templates from recent confirmed transactions
 - [x] Save-and-add-another flow that preserves useful choices
-- [ ] Local category suggestions learned from confirmed transaction descriptions
+- [x] Local category suggestions learned from confirmed transaction descriptions
+- [x] Explainable exact and similar-description matching that avoids ambiguous guesses
+- [x] Explicit suggestion acceptance and dismissal with no automatic category changes
 - [ ] Global transaction search with useful filters
 
 ### Stage 9 — Local planning assistance

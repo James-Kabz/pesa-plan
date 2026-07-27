@@ -11,7 +11,9 @@ currency, real accounts and opening balances, expected monthly income, and a
 basic budget. Its Smart Today screen adds one explainable next action, upcoming
 schedules, budget pacing, and expected-versus-recorded income without posting
 anything automatically. Faster entry adds recent templates, recent amounts,
-last-used account/category defaults, and a save-and-add-another workflow.
+last-used account/category defaults, and a save-and-add-another workflow. Smart
+categorization privately learns from confirmed descriptions, explains strong
+matches, and waits for the user to accept every suggestion.
 Version 1.1 includes:
 
 - an Expo + React Native + TypeScript foundation;
