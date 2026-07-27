@@ -10,6 +10,7 @@ import { getTimeGreeting } from '@/domain/greeting';
 import { formatMoney, getDueStatus } from '@/domain/money';
 import {
   buildTodayPriority,
+  getBudgetPacing,
   getBudgetPulse,
   getUpcomingSchedules,
   type TodayPriority,
@@ -78,9 +79,19 @@ export default function DashboardScreen() {
   const watchedBudgets = useMemo(
     () =>
       [...budgets]
-        .sort((a, b) => b.spentMinor / b.limitMinor - a.spentMinor / a.limitMinor)
+        .sort((a, b) => {
+          const rank = { over: 3, used_up: 2, watch: 1, on_track: 0 };
+          const aPacing = getBudgetPacing(a, today);
+          const bPacing = getBudgetPacing(b, today);
+          return (
+            rank[bPacing.status] -
+              rank[aPacing.status] ||
+            b.spentMinor / b.limitMinor -
+              a.spentMinor / a.limitMinor
+          );
+        })
         .slice(0, 3),
-    [budgets],
+    [budgets, dayKey],
   );
   const month = new Intl.DateTimeFormat('en-KE', { month: 'long', year: 'numeric' }).format(
     new Date(),
@@ -251,9 +262,10 @@ export default function DashboardScreen() {
             budgetPulse.status === 'none'
               ? 'Add a simple plan'
               : privateValue(
-                  `${formatMoney(Math.abs(budgetPulse.remainingMinor), preferences.mainCurrency)} ${
-                    budgetPulse.remainingMinor < 0 ? 'over' : 'left'
-                  }`,
+                  `${formatMoney(
+                    budgetPulse.safePerDayMinor,
+                    preferences.mainCurrency,
+                  )}/day · ${budgetPulse.daysRemaining}d`,
                 )
           }
           warning={budgetPulse.status === 'over' || budgetPulse.status === 'watch'}
@@ -309,37 +321,78 @@ export default function DashboardScreen() {
             onPress={() => router.push('/(tabs)/plan')}
             style={styles.budgetWatch}
           >
-            {watchedBudgets.map((budget) => (
-              <View key={budget.id} style={styles.budgetWatchRow}>
-                <View style={styles.budgetWatchTop}>
-                  <Text style={styles.budgetWatchName}>{budget.categoryName}</Text>
-                  <Text
-                    style={[
-                      styles.budgetWatchValue,
-                      budget.spentMinor > budget.limitMinor && styles.negativeText,
-                    ]}
-                  >
-                    {privateValue(
-                      `${Math.round((budget.spentMinor / budget.limitMinor) * 100)}%`,
-                    )}
-                  </Text>
+            {watchedBudgets.map((budget) => {
+              const pacing = getBudgetPacing(budget, today);
+              const paceLabel =
+                pacing.status === 'over'
+                  ? 'Over budget'
+                  : pacing.status === 'used_up'
+                    ? 'Limit used'
+                    : pacing.status === 'watch'
+                      ? 'Ahead of pace'
+                      : 'On track';
+              return (
+                <View key={budget.id} style={styles.budgetWatchRow}>
+                  <View style={styles.budgetWatchTop}>
+                    <Text style={styles.budgetWatchName}>{budget.categoryName}</Text>
+                    <Text
+                      style={[
+                        styles.budgetWatchValue,
+                        pacing.status === 'over' && styles.negativeText,
+                        (pacing.status === 'watch' ||
+                          pacing.status === 'used_up') &&
+                          styles.warningText,
+                      ]}
+                    >
+                      {privateValue(
+                        `${Math.round((budget.spentMinor / budget.limitMinor) * 100)}%`,
+                      )}
+                    </Text>
+                  </View>
+                  <View style={styles.budgetTrack}>
+                    <View
+                      style={[
+                        styles.budgetFill,
+                        {
+                          width: `${Math.min(
+                            100,
+                            (budget.spentMinor / budget.limitMinor) * 100,
+                          )}%`,
+                        },
+                        (pacing.status === 'watch' ||
+                          pacing.status === 'used_up') &&
+                          styles.budgetFillWatch,
+                        pacing.status === 'over' && styles.budgetFillOver,
+                      ]}
+                    />
+                  </View>
+                  <View style={styles.budgetPaceMeta}>
+                    <Text
+                      style={[
+                        styles.budgetPaceStatus,
+                        pacing.status === 'over' && styles.negativeText,
+                        (pacing.status === 'watch' ||
+                          pacing.status === 'used_up') &&
+                          styles.warningText,
+                      ]}
+                    >
+                      {paceLabel}
+                    </Text>
+                    <Text style={styles.budgetPaceDaily}>
+                      {pacing.status === 'over' ||
+                      pacing.status === 'used_up'
+                        ? 'Pause category'
+                        : privateValue(
+                            `${formatMoney(
+                              pacing.safePerDayMinor,
+                              preferences.mainCurrency,
+                            )}/day`,
+                          )}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.budgetTrack}>
-                  <View
-                    style={[
-                      styles.budgetFill,
-                      {
-                        width: `${Math.min(
-                          100,
-                          (budget.spentMinor / budget.limitMinor) * 100,
-                        )}%`,
-                      },
-                      budget.spentMinor > budget.limitMinor && styles.budgetFillOver,
-                    ]}
-                  />
-                </View>
-              </View>
-            ))}
+              );
+            })}
           </Pressable>
         </>
       ) : null}
@@ -753,7 +806,23 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   budgetFill: { height: 7, borderRadius: radius.pill, backgroundColor: colors.primary },
+  budgetFillWatch: { backgroundColor: colors.warning },
   budgetFillOver: { backgroundColor: colors.expense },
+  budgetPaceMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+  },
+  budgetPaceStatus: {
+    color: colors.primary,
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  budgetPaceDaily: {
+    color: colors.muted,
+    fontSize: 9,
+    fontWeight: '700',
+  },
   action: {
     flex: 1,
     alignItems: 'center',

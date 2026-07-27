@@ -124,7 +124,9 @@ Status: **Started**
 - [x] Opt-in local schedule and pay-day reminders with no automatic posting
 - [x] One low-noise weekly budget and savings-goal check-in
 - [x] Independent reminder controls, private lock-screen copy, and a test action
-- [ ] Budget pacing based on time remaining in the month
+- [x] Daily budget pacing based on category balances and inclusive days remaining
+- [x] Category pace states and month-end projections from confirmed spending
+- [x] Privacy-aware Home pulse plus detailed, accessible Plan guidance
 - [ ] Savings guidance based on real unallocated account balances
 - [ ] Clear debt-payment guidance using the chosen payoff strategy
 

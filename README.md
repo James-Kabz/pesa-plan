@@ -17,7 +17,10 @@ matches, and waits for the user to accept every suggestion. Recurring assistance
 detects strong weekly or monthly patterns on-device and proposes reminder
 schedules without automatically recording transactions. Opt-in local
 notifications add private schedule, payday, and combined weekly budget/savings
-check-ins; notification previews never expose financial amounts.
+check-ins; notification previews never expose financial amounts. Budget pacing
+turns each remaining category balance into an explainable daily guide, highlights
+fast or exhausted categories, and projects month-end spending from confirmed
+activity.
 Version 1.1 includes:
 
 - an Expo + React Native + TypeScript foundation;

@@ -5,6 +5,11 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { formatMoney, getDueStatus } from '@/domain/money';
 import {
+  getBudgetPacing,
+  getBudgetPulse,
+  type BudgetPacing,
+} from '@/domain/today';
+import {
   getRecurringSuggestions,
   type RecurringSuggestion,
 } from '@/domain/recurringSuggestion';
@@ -23,6 +28,12 @@ export default function PlanScreen() {
     preferences,
   } = useFinance();
   const latest = transactions.find((item) => item.type !== 'transfer');
+  const today = new Date();
+  const dayKey = today.toDateString();
+  const budgetPulse = useMemo(
+    () => getBudgetPulse(budgets, today),
+    [budgets, dayKey],
+  );
   const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
   const recurringSuggestions = useMemo(
     () =>
@@ -174,13 +185,42 @@ export default function PlanScreen() {
         <Ionicons name="add" size={18} color={colors.primary} />
         <Text style={styles.secondaryAddText}>Set a category budget</Text>
       </Pressable>
+      {budgets.length ? (
+        <View style={styles.pacingGuide}>
+          <View style={styles.pacingGuideIcon}>
+            <Ionicons name="speedometer-outline" size={21} color={colors.primary} />
+          </View>
+          <View style={styles.pacingGuideContent}>
+            <Text style={styles.pacingGuideLabel}>DAILY BUDGET GUIDE</Text>
+            <Text style={styles.pacingGuideValue}>
+              {formatMoney(
+                budgetPulse.safePerDayMinor,
+                preferences.mainCurrency,
+              )}
+              /day
+            </Text>
+            <Text style={styles.pacingGuideMeta}>
+              Across categories with money left · {budgetPulse.daysRemaining}{' '}
+              {budgetPulse.daysRemaining === 1 ? 'day' : 'days'} including today
+            </Text>
+            <Text style={styles.pacingGuideHint}>
+              This is guidance from your remaining category limits, not an automatic spending restriction.
+            </Text>
+          </View>
+        </View>
+      ) : null}
       {budgets.map((budget) => {
         const ratio = Math.min(1, budget.spentMinor / budget.limitMinor);
         const remaining = budget.limitMinor - budget.spentMinor;
+        const pacing = getBudgetPacing(budget, today);
+        const pacingCopy = getPacingCopy(
+          pacing,
+          preferences.mainCurrency,
+        );
         return (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Edit ${budget.categoryName} budget`}
+            accessibilityLabel={`Edit ${budget.categoryName} budget. ${pacingCopy}`}
             key={budget.id}
             style={styles.budget}
             onPress={() => router.push({ pathname: '/budget/editor', params: { id: budget.id } })}
@@ -192,12 +232,52 @@ export default function PlanScreen() {
               </Text>
             </View>
             <View style={styles.track}>
-              <View style={[styles.fill, { width: `${ratio * 100}%` }]} />
+              <View
+                style={[
+                  styles.fill,
+                  { width: `${ratio * 100}%` },
+                  pacing.status === 'watch' && styles.fillWatch,
+                  pacing.status === 'over' && styles.fillOver,
+                ]}
+              />
             </View>
             <Text style={styles.meta}>
               {formatMoney(budget.spentMinor, preferences.mainCurrency)} of{' '}
               {formatMoney(budget.limitMinor, preferences.mainCurrency)}
             </Text>
+            <View style={styles.pacingRow}>
+              <Ionicons
+                name={
+                  pacing.status === 'over'
+                    ? 'alert-circle-outline'
+                    : pacing.status === 'watch'
+                      ? 'time-outline'
+                      : pacing.status === 'used_up'
+                        ? 'pause-circle-outline'
+                        : 'checkmark-circle-outline'
+                }
+                size={15}
+                color={
+                  pacing.status === 'over'
+                    ? colors.expense
+                    : pacing.status === 'watch' ||
+                        pacing.status === 'used_up'
+                      ? colors.warning
+                      : colors.primary
+                }
+              />
+              <Text
+                style={[
+                  styles.pacingText,
+                  pacing.status === 'over' && styles.pacingTextOver,
+                  (pacing.status === 'watch' ||
+                    pacing.status === 'used_up') &&
+                    styles.pacingTextWatch,
+                ]}
+              >
+                {pacingCopy}
+              </Text>
+            </View>
           </Pressable>
         );
       })}
@@ -359,6 +439,25 @@ export default function PlanScreen() {
   );
 }
 
+function getPacingCopy(pacing: BudgetPacing, currency: string): string {
+  if (pacing.status === 'over') {
+    return `${formatMoney(
+      Math.abs(pacing.remainingMinor),
+      currency,
+    )} over. Pause or adjust this budget.`;
+  }
+  if (pacing.status === 'used_up') {
+    return 'Limit fully used. Pause this category for the rest of the month.';
+  }
+  const daily = formatMoney(pacing.safePerDayMinor, currency);
+  const projected = formatMoney(pacing.projectedSpentMinor, currency);
+  return pacing.status === 'watch'
+    ? `${daily}/day from here. Current pace projects ${projected}.`
+    : `${daily}/day for ${pacing.daysRemaining} ${
+        pacing.daysRemaining === 1 ? 'day' : 'days'
+      }. Current pace projects ${projected}.`;
+}
+
 const styles = StyleSheet.create({
   eyebrow: { color: colors.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1.5, marginTop: spacing.sm },
   title: { color: colors.ink, fontSize: 30, fontWeight: '800', letterSpacing: -0.8 },
@@ -394,6 +493,66 @@ const styles = StyleSheet.create({
   budgetTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   track: { height: 8, borderRadius: radius.pill, backgroundColor: colors.border, overflow: 'hidden', marginVertical: spacing.sm },
   fill: { height: 8, borderRadius: radius.pill, backgroundColor: colors.primary },
+  fillWatch: { backgroundColor: colors.warning },
+  fillOver: { backgroundColor: colors.expense },
+  pacingGuide: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: '#BFD8CA',
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  pacingGuideIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pacingGuideContent: { flex: 1 },
+  pacingGuideLabel: {
+    color: colors.primary,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+  },
+  pacingGuideValue: {
+    color: colors.ink,
+    fontSize: 22,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  pacingGuideMeta: {
+    color: colors.ink,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  pacingGuideHint: {
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 15,
+    marginTop: spacing.xs,
+  },
+  pacingRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  pacingText: {
+    flex: 1,
+    color: colors.primary,
+    fontSize: 10,
+    lineHeight: 15,
+    fontWeight: '700',
+  },
+  pacingTextWatch: { color: colors.warning },
+  pacingTextOver: { color: colors.expense },
   secondaryAdd: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, borderWidth: 1, borderColor: colors.primary, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md },
   secondaryAddText: { color: colors.primary, fontSize: 13, fontWeight: '800' },
   fundLink: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginTop: spacing.xl },

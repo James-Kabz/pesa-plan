@@ -38,9 +38,21 @@ export interface BudgetPulse {
   limitMinor: number;
   spentMinor: number;
   remainingMinor: number;
+  safePerDayMinor: number;
+  daysRemaining: number;
   spentRatio: number;
   monthProgress: number;
   status: 'none' | 'on_track' | 'watch' | 'over';
+}
+
+export interface BudgetPacing {
+  remainingMinor: number;
+  safePerDayMinor: number;
+  projectedSpentMinor: number;
+  daysRemaining: number;
+  spentRatio: number;
+  monthProgress: number;
+  status: 'on_track' | 'watch' | 'used_up' | 'over';
 }
 
 export interface TodayInput {
@@ -69,18 +81,75 @@ export function getBudgetPulse(budgets: MonthlyBudget[], now = new Date()): Budg
   const monthProgress = Math.min(1, Math.max(0, now.getDate() / daysInMonth));
   const spentRatio = limitMinor > 0 ? spentMinor / limitMinor : 0;
   const remainingMinor = limitMinor - spentMinor;
-  const hasOverBudgetCategory = budgets.some(
-    (budget) => budget.spentMinor > budget.limitMinor,
+  const pacing = budgets.map((budget) => getBudgetPacing(budget, now));
+  const daysRemaining = Math.max(1, daysInMonth - now.getDate() + 1);
+  const safePerDayMinor = Math.floor(
+    pacing.reduce(
+      (sum, item) => sum + Math.max(0, item.remainingMinor),
+      0,
+    ) / daysRemaining,
   );
+  const hasOverBudgetCategory = pacing.some(({ status }) => status === 'over');
+  const hasFastBudgetCategory = pacing.some(({ status }) => status === 'watch');
   const status =
     !limitMinor
       ? 'none'
       : spentRatio > 1 || hasOverBudgetCategory
         ? 'over'
+        : spentRatio > monthProgress + 0.15 || hasFastBudgetCategory
+          ? 'watch'
+          : 'on_track';
+  return {
+    limitMinor,
+    spentMinor,
+    remainingMinor,
+    safePerDayMinor,
+    daysRemaining,
+    spentRatio,
+    monthProgress,
+    status,
+  };
+}
+
+export function getBudgetPacing(
+  budget: Pick<MonthlyBudget, 'limitMinor' | 'spentMinor'>,
+  now = new Date(),
+): BudgetPacing {
+  const daysInMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0,
+  ).getDate();
+  const elapsedDays = Math.min(daysInMonth, Math.max(1, now.getDate()));
+  const daysRemaining = daysInMonth - elapsedDays + 1;
+  const remainingMinor = budget.limitMinor - budget.spentMinor;
+  const spentRatio =
+    budget.limitMinor > 0 ? budget.spentMinor / budget.limitMinor : 0;
+  const monthProgress = elapsedDays / daysInMonth;
+  const safePerDayMinor = Math.floor(
+    Math.max(0, remainingMinor) / daysRemaining,
+  );
+  const projectedSpentMinor = Math.round(
+    (budget.spentMinor / elapsedDays) * daysInMonth,
+  );
+  const status =
+    remainingMinor < 0
+      ? 'over'
+      : remainingMinor === 0
+        ? 'used_up'
         : spentRatio > monthProgress + 0.15
           ? 'watch'
           : 'on_track';
-  return { limitMinor, spentMinor, remainingMinor, spentRatio, monthProgress, status };
+
+  return {
+    remainingMinor,
+    safePerDayMinor,
+    projectedSpentMinor,
+    daysRemaining,
+    spentRatio,
+    monthProgress,
+    status,
+  };
 }
 
 export function getUpcomingSchedules(

@@ -7,7 +7,12 @@ import type {
   RecurringTransaction,
   SavingsGoal,
 } from './types';
-import { buildTodayPriority, getBudgetPulse, getUpcomingSchedules } from './today';
+import {
+  buildTodayPriority,
+  getBudgetPacing,
+  getBudgetPulse,
+  getUpcomingSchedules,
+} from './today';
 
 const now = new Date(2026, 6, 20, 12);
 const summary: MonthlySummary = {
@@ -187,5 +192,69 @@ describe('Today priority', () => {
         }),
       ).kind,
     ).toBe('savings_setup');
+  });
+});
+
+describe('Budget pacing', () => {
+  const budget = {
+    limitMinor: 100_000,
+    spentMinor: 30_000,
+  };
+
+  it('calculates an inclusive daily guide and projected month-end spend', () => {
+    expect(getBudgetPacing(budget, now)).toMatchObject({
+      remainingMinor: 70_000,
+      safePerDayMinor: 5_833,
+      projectedSpentMinor: 46_500,
+      daysRemaining: 12,
+      status: 'on_track',
+    });
+  });
+
+  it('identifies fast, fully used, and over-budget categories', () => {
+    expect(
+      getBudgetPacing({ ...budget, spentMinor: 90_000 }, now),
+    ).toMatchObject({
+      safePerDayMinor: 833,
+      status: 'watch',
+    });
+    expect(
+      getBudgetPacing({ ...budget, spentMinor: 100_000 }, now),
+    ).toMatchObject({
+      safePerDayMinor: 0,
+      status: 'used_up',
+    });
+    expect(
+      getBudgetPacing({ ...budget, spentMinor: 110_000 }, now),
+    ).toMatchObject({
+      remainingMinor: -10_000,
+      safePerDayMinor: 0,
+      status: 'over',
+    });
+  });
+
+  it('uses the full remaining amount as the final-day guide', () => {
+    expect(
+      getBudgetPacing(budget, new Date(2026, 6, 31, 12)),
+    ).toMatchObject({
+      safePerDayMinor: 70_000,
+      daysRemaining: 1,
+    });
+  });
+
+  it('aggregates only positive category balances into the daily guide', () => {
+    const pulse = getBudgetPulse(
+      [
+        { ...budget, limitMinor: 100_000, spentMinor: 40_000 },
+        { ...budget, limitMinor: 50_000, spentMinor: 60_000 },
+      ] as MonthlyBudget[],
+      now,
+    );
+    expect(pulse).toMatchObject({
+      remainingMinor: 50_000,
+      safePerDayMinor: 5_000,
+      daysRemaining: 12,
+      status: 'over',
+    });
   });
 });
