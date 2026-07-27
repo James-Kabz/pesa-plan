@@ -307,6 +307,13 @@ export async function createRecurring(db: SQLiteDatabase, input: RecurringInput)
   );
 }
 
+export async function deleteRecurring(
+  db: SQLiteDatabase,
+  id: string,
+): Promise<void> {
+  await db.runAsync('DELETE FROM recurring_transactions WHERE id = ?', id);
+}
+
 export async function postRecurring(db: SQLiteDatabase, schedule: RecurringTransaction): Promise<void> {
   await withDatabaseTransaction(db, async (transaction) => {
     await transaction.runAsync(

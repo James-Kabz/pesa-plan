@@ -8,11 +8,20 @@ import {
   getRecurringSuggestions,
   type RecurringSuggestion,
 } from '@/domain/recurringSuggestion';
+import type { RecurringTransaction } from '@/domain/types';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function PlanScreen() {
-  const { recurring, transactions, addRecurring, recordRecurring, budgets, preferences } = useFinance();
+  const {
+    recurring,
+    transactions,
+    addRecurring,
+    recordRecurring,
+    removeRecurring,
+    budgets,
+    preferences,
+  } = useFinance();
   const latest = transactions.find((item) => item.type !== 'transfer');
   const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
   const recurringSuggestions = useMemo(
@@ -88,6 +97,25 @@ export default function PlanScreen() {
               frequency: 'monthly',
               nextDueAt: next.toISOString(),
             }),
+        },
+      ],
+    );
+  }
+
+  function confirmScheduleDelete(schedule: RecurringTransaction) {
+    const name = schedule.note || schedule.categoryName;
+    Alert.alert(
+      'Delete this schedule?',
+      `${name} will no longer appear as upcoming. Transactions already recorded from it will remain unchanged.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete schedule',
+          style: 'destructive',
+          onPress: () =>
+            void removeRecurring(schedule.id).catch(() =>
+              Alert.alert('Could not delete', 'The schedule was not deleted. Please try again.'),
+            ),
         },
       ],
     );
@@ -260,9 +288,20 @@ export default function PlanScreen() {
                   <Text style={styles.amount}>
                     {formatMoney(item.amountMinor, item.accountCurrency)}
                   </Text>
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Post ${item.note || item.categoryName} now`} onPress={() => void recordRecurring(item)}>
-                    <Text style={styles.post}>Post now</Text>
-                  </Pressable>
+                  <View style={styles.scheduleActions}>
+                    <Pressable accessibilityRole="button" accessibilityLabel={`Post ${item.note || item.categoryName} now`} onPress={() => void recordRecurring(item)}>
+                      <Text style={styles.post}>Post now</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Delete ${item.note || item.categoryName} schedule`}
+                      hitSlop={8}
+                      onPress={() => confirmScheduleDelete(item)}
+                      style={styles.deleteSchedule}
+                    >
+                      <Ionicons name="trash-outline" size={15} color={colors.expense} />
+                    </Pressable>
+                  </View>
                 </View>
               </View>
             );
@@ -294,6 +333,18 @@ const styles = StyleSheet.create({
   right: { alignItems: 'flex-end' },
   amount: { color: colors.ink, fontSize: 13, fontWeight: '800' },
   post: { color: colors.primary, fontSize: 11, fontWeight: '800', marginTop: spacing.xs },
+  scheduleActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.xs,
+  },
+  deleteSchedule: {
+    width: 26,
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   empty: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.xl, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   emptyTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' },
   emptyText: { color: colors.muted, fontSize: 13, textAlign: 'center', marginTop: spacing.sm },

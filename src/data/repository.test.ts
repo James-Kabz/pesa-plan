@@ -12,6 +12,7 @@ import {
   createSinkingFund,
   createTransaction,
   createTransfer,
+  deleteRecurring,
   deleteTransaction,
   listAccounts,
   listBudgets,
@@ -206,6 +207,11 @@ describe('finance repository integration', () => {
     const nextSchedule = (await listRecurring(db))[0];
     expect(nextSchedule.nextDueAt).toBe('2026-07-31T12:00:00.000Z');
     expect((await listAccounts(db))[0].currentBalanceMinor).toBe(-5_000);
+    await deleteRecurring(db, schedule.id);
+    expect(await listRecurring(db)).toHaveLength(0);
+    expect(
+      (await listTransactions(db)).filter((transaction) => transaction.type !== 'transfer'),
+    ).toHaveLength(1);
 
     await createSinkingFund(db, {
       name: 'Insurance',

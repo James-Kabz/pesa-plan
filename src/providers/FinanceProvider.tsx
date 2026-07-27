@@ -31,6 +31,7 @@ import {
   createTransaction,
   createTransfer,
   createRecurring,
+  deleteRecurring,
   deleteTransaction,
   listAccounts,
   listCategories,
@@ -80,6 +81,7 @@ interface FinanceContextValue {
   recurring: RecurringTransaction[];
   addRecurring: (input: RecurringInput) => Promise<void>;
   recordRecurring: (schedule: RecurringTransaction) => Promise<void>;
+  removeRecurring: (id: string) => Promise<void>;
   budgets: MonthlyBudget[];
   setBudget: (
     categoryId: string,
@@ -227,6 +229,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     await postRecurring(db, schedule); await refresh();
   }, [db, refresh]);
 
+  const removeRecurring = useCallback(async (id: string) => {
+    await deleteRecurring(db, id);
+    await refresh();
+  }, [db, refresh]);
+
   const setBudget = useCallback(
     async (categoryId: string, limitMinor: number, customCategoryName?: string) => {
       if (customCategoryName) {
@@ -332,6 +339,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       recurring,
       addRecurring,
       recordRecurring,
+      removeRecurring,
       budgets,
       setBudget,
       removeBudget,
@@ -372,6 +380,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       recurring,
       addRecurring,
       recordRecurring,
+      removeRecurring,
       budgets,
       setBudget,
       removeBudget,
