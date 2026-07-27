@@ -1,18 +1,35 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { TransactionRow } from '@/components/TransactionRow';
 import { getTimeGreeting } from '@/domain/greeting';
-import { formatMoney } from '@/domain/money';
+import { formatMoney, getDueStatus } from '@/domain/money';
+import {
+  buildTodayPriority,
+  getBudgetPulse,
+  getUpcomingSchedules,
+  type TodayPriority,
+} from '@/domain/today';
+import type { RecurringTransaction } from '@/domain/types';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function DashboardScreen() {
-  const { accounts, monthlySummary, transactions, preferences, expectedIncome } = useFinance();
+  const {
+    accounts,
+    monthlySummary,
+    transactions,
+    preferences,
+    expectedIncome,
+    recurring,
+    budgets,
+    savingsGoals,
+    recordRecurring,
+  } = useFinance();
   const [amountsVisible, setAmountsVisible] = useState(true);
   const [greeting, setGreeting] = useState(() => getTimeGreeting());
   const privateValue = (value: string) => (amountsVisible ? value : '••••••');
@@ -28,6 +45,43 @@ export default function DashboardScreen() {
     )
     .reduce((sum, income) => sum + income.amountMinor, 0);
   const incomeStillExpected = Math.max(0, expectedMonthlyIncome - monthlySummary.incomeMinor);
+  const today = new Date();
+  const dayKey = today.toDateString();
+  const budgetPulse = useMemo(() => getBudgetPulse(budgets, today), [budgets, dayKey]);
+  const upcomingSchedules = useMemo(
+    () => getUpcomingSchedules(recurring, preferences.mainCurrency, today),
+    [dayKey, preferences.mainCurrency, recurring],
+  );
+  const priority = useMemo(
+    () =>
+      buildTodayPriority({
+        now: today,
+        currency: preferences.mainCurrency,
+        accounts,
+        recurring,
+        budgets,
+        expectedIncome,
+        monthlySummary,
+        savingsGoals,
+      }),
+    [
+      accounts,
+      budgets,
+      expectedIncome,
+      monthlySummary,
+      preferences.mainCurrency,
+      recurring,
+      savingsGoals,
+      dayKey,
+    ],
+  );
+  const watchedBudgets = useMemo(
+    () =>
+      [...budgets]
+        .sort((a, b) => b.spentMinor / b.limitMinor - a.spentMinor / a.limitMinor)
+        .slice(0, 3),
+    [budgets],
+  );
   const month = new Intl.DateTimeFormat('en-KE', { month: 'long', year: 'numeric' }).format(
     new Date(),
   );
@@ -37,17 +91,57 @@ export default function DashboardScreen() {
     return () => clearInterval(timer);
   }, []);
 
+  function handlePriorityAction(item: TodayPriority) {
+    switch (item.action) {
+      case 'review_recurring':
+      case 'review_budget':
+        router.push('/(tabs)/plan');
+        break;
+      case 'record_income':
+        router.push({ pathname: '/transaction/new', params: { type: 'income' } });
+        break;
+      case 'create_budget':
+        router.push('/budget/editor');
+        break;
+      case 'create_goal':
+        router.push('/goal/editor');
+        break;
+      default:
+        router.push('/transaction/new');
+    }
+  }
+
+  function confirmRecurring(schedule: RecurringTransaction) {
+    const name = schedule.note || schedule.categoryName;
+    Alert.alert(
+      `Record ${name}?`,
+      `This will add ${formatMoney(schedule.amountMinor, schedule.accountCurrency)} as a real ${schedule.type} transaction. Nothing is recorded automatically.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Record now',
+          onPress: () =>
+            void recordRecurring(schedule).catch(() =>
+              Alert.alert('Could not record', 'The scheduled transaction was not posted.'),
+            ),
+        },
+      ],
+    );
+  }
+
   return (
     <Screen>
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>YOUR MONEY</Text>
+          <Text style={styles.eyebrow}>TODAY</Text>
           <Text style={styles.greeting}>{greeting}</Text>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel="Open privacy and data settings" style={styles.profile} onPress={() => router.push('/settings')}>
           <Ionicons name="person-outline" size={19} color={colors.primary} />
         </Pressable>
       </View>
+
+      <PriorityCard priority={priority} onPress={() => handlePriorityAction(priority)} />
 
       <LinearGradient
         colors={[colors.primary, colors.dark]}
@@ -110,10 +204,66 @@ export default function DashboardScreen() {
         </View>
       </LinearGradient>
 
+      <View style={styles.quickActions}>
+        <QuickAction
+          icon="add"
+          label="Add income"
+          onPress={() => router.push({ pathname: '/transaction/new', params: { type: 'income' } })}
+        />
+        <QuickAction
+          icon="remove"
+          label="Add expense"
+          onPress={() => router.push({ pathname: '/transaction/new', params: { type: 'expense' } })}
+        />
+        <QuickAction icon="wallet-outline" label="Accounts" onPress={() => router.push('/accounts')} />
+      </View>
+
+      <SectionHeader title="At a glance" />
+      <View style={styles.glanceGrid}>
+        <GlanceCard
+          icon="calendar-outline"
+          label="Next 7 days"
+          value={upcomingSchedules.length ? `${upcomingSchedules.length} due` : 'Clear'}
+          meta={
+            upcomingSchedules.length
+              ? privateValue(
+                  formatMoney(
+                    upcomingSchedules.reduce((sum, item) => sum + item.amountMinor, 0),
+                    preferences.mainCurrency,
+                  ),
+                )
+              : 'Nothing scheduled'
+          }
+        />
+        <GlanceCard
+          icon="speedometer-outline"
+          label="Budget pulse"
+          value={
+            budgetPulse.status === 'none'
+              ? 'Not set'
+              : budgetPulse.status === 'over'
+                ? 'Over'
+                : budgetPulse.status === 'watch'
+                  ? 'Watch'
+                  : 'On track'
+          }
+          meta={
+            budgetPulse.status === 'none'
+              ? 'Add a simple plan'
+              : privateValue(
+                  `${formatMoney(Math.abs(budgetPulse.remainingMinor), preferences.mainCurrency)} ${
+                    budgetPulse.remainingMinor < 0 ? 'over' : 'left'
+                  }`,
+                )
+          }
+          warning={budgetPulse.status === 'over' || budgetPulse.status === 'watch'}
+        />
+      </View>
+
       {expectedMonthlyIncome ? (
         <View style={styles.planCard}>
           <View style={styles.planIcon}>
-            <Ionicons name="calendar-outline" size={21} color={colors.primary} />
+            <Ionicons name="cash-outline" size={21} color={colors.primary} />
           </View>
           <View style={styles.planText}>
             <Text style={styles.planTitle}>Monthly income plan</Text>
@@ -130,21 +280,73 @@ export default function DashboardScreen() {
         </View>
       ) : null}
 
-      <View style={styles.quickActions}>
-        <QuickAction
-          icon="add"
-          label="Add income"
-          onPress={() => router.push({ pathname: '/transaction/new', params: { type: 'income' } })}
-        />
-        <QuickAction
-          icon="remove"
-          label="Add expense"
-          onPress={() => router.push({ pathname: '/transaction/new', params: { type: 'expense' } })}
-        />
-        <QuickAction icon="wallet-outline" label="Accounts" onPress={() => router.push('/accounts')} />
-      </View>
+      {upcomingSchedules.length ? (
+        <>
+          <View style={styles.smartSection}>
+            <SectionHeader title="Coming up" action="Next 7 days" />
+          </View>
+          <View style={styles.smartList}>
+            {upcomingSchedules.slice(0, 3).map((schedule) => (
+              <ScheduleRow
+                key={schedule.id}
+                schedule={schedule}
+                amountsVisible={amountsVisible}
+                onRecord={() => confirmRecurring(schedule)}
+              />
+            ))}
+          </View>
+        </>
+      ) : null}
 
+      {watchedBudgets.length ? (
+        <>
+          <View style={styles.smartSection}>
+            <SectionHeader title="Budget watch" action="Highest use" />
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open monthly budgets"
+            onPress={() => router.push('/(tabs)/plan')}
+            style={styles.budgetWatch}
+          >
+            {watchedBudgets.map((budget) => (
+              <View key={budget.id} style={styles.budgetWatchRow}>
+                <View style={styles.budgetWatchTop}>
+                  <Text style={styles.budgetWatchName}>{budget.categoryName}</Text>
+                  <Text
+                    style={[
+                      styles.budgetWatchValue,
+                      budget.spentMinor > budget.limitMinor && styles.negativeText,
+                    ]}
+                  >
+                    {privateValue(
+                      `${Math.round((budget.spentMinor / budget.limitMinor) * 100)}%`,
+                    )}
+                  </Text>
+                </View>
+                <View style={styles.budgetTrack}>
+                  <View
+                    style={[
+                      styles.budgetFill,
+                      {
+                        width: `${Math.min(
+                          100,
+                          (budget.spentMinor / budget.limitMinor) * 100,
+                        )}%`,
+                      },
+                      budget.spentMinor > budget.limitMinor && styles.budgetFillOver,
+                    ]}
+                  />
+                </View>
+              </View>
+            ))}
+          </Pressable>
+        </>
+      ) : null}
+
+      <View style={styles.smartSection}>
       <SectionHeader title="Accounts" action={`${accounts.length} total`} />
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -166,10 +368,10 @@ export default function DashboardScreen() {
       </View>
       <View style={styles.activityCard}>
         {transactions.length ? (
-          transactions.slice(0, 5).map((transaction, index) => (
+          transactions.slice(0, 3).map((transaction, index) => (
             <View key={transaction.id}>
               <TransactionRow transaction={transaction} amountsVisible={amountsVisible} />
-              {index < Math.min(transactions.length, 5) - 1 ? (
+              {index < Math.min(transactions.length, 3) - 1 ? (
                 <View style={styles.rowDivider} />
               ) : null}
             </View>
@@ -210,6 +412,133 @@ function QuickAction({
   );
 }
 
+function PriorityCard({
+  priority,
+  onPress,
+}: {
+  priority: TodayPriority;
+  onPress: () => void;
+}) {
+  const icon: keyof typeof Ionicons.glyphMap =
+    priority.tone === 'urgent'
+      ? 'alert-circle-outline'
+      : priority.tone === 'warning'
+        ? 'time-outline'
+        : priority.tone === 'positive'
+          ? 'checkmark-circle-outline'
+          : 'sparkles-outline';
+  return (
+    <View
+      style={[
+        styles.priorityCard,
+        priority.tone === 'urgent' && styles.priorityUrgent,
+        priority.tone === 'warning' && styles.priorityWarning,
+      ]}
+    >
+      <View
+        style={[
+          styles.priorityIcon,
+          priority.tone === 'urgent' && styles.priorityIconUrgent,
+          priority.tone === 'warning' && styles.priorityIconWarning,
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={24}
+          color={priority.tone === 'urgent' ? colors.expense : colors.primary}
+        />
+      </View>
+      <View style={styles.priorityContent}>
+        <Text style={styles.priorityLabel}>WHAT NEEDS ATTENTION</Text>
+        <Text style={styles.priorityTitle}>{priority.title}</Text>
+        <Text style={styles.priorityReason}>{priority.reason}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={priority.actionLabel}
+          onPress={onPress}
+          style={({ pressed }) => [styles.priorityAction, pressed && styles.pressed]}
+        >
+          <Text style={styles.priorityActionText}>{priority.actionLabel}</Text>
+          <Ionicons name="arrow-forward" size={17} color={colors.primary} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function GlanceCard({
+  icon,
+  label,
+  value,
+  meta,
+  warning = false,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  meta: string;
+  warning?: boolean;
+}) {
+  return (
+    <View style={styles.glanceCard}>
+      <View style={styles.glanceTop}>
+        <Ionicons name={icon} size={18} color={warning ? colors.warning : colors.primary} />
+        <Text style={styles.glanceLabel}>{label}</Text>
+      </View>
+      <Text style={[styles.glanceValue, warning && styles.warningText]}>{value}</Text>
+      <Text style={styles.glanceMeta}>{meta}</Text>
+    </View>
+  );
+}
+
+function ScheduleRow({
+  schedule,
+  amountsVisible,
+  onRecord,
+}: {
+  schedule: RecurringTransaction;
+  amountsVisible: boolean;
+  onRecord: () => void;
+}) {
+  const status = getDueStatus(schedule.nextDueAt);
+  const due = new Intl.DateTimeFormat('en-KE', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(schedule.nextDueAt));
+  return (
+    <View style={styles.scheduleRow}>
+      <View style={[styles.scheduleIcon, status === 'overdue' && styles.scheduleIconOverdue]}>
+        <Ionicons
+          name={schedule.type === 'income' ? 'arrow-down-outline' : 'arrow-up-outline'}
+          size={19}
+          color={status === 'overdue' ? colors.expense : colors.primary}
+        />
+      </View>
+      <View style={styles.scheduleContent}>
+        <Text style={styles.scheduleName}>{schedule.note || schedule.categoryName}</Text>
+        <Text style={[styles.scheduleMeta, status === 'overdue' && styles.negativeText]}>
+          {status === 'overdue' ? 'Overdue' : `Due ${due}`} · {schedule.accountName}
+        </Text>
+      </View>
+      <View style={styles.scheduleRight}>
+        <Text style={styles.scheduleAmount}>
+          {amountsVisible
+            ? formatMoney(schedule.amountMinor, schedule.accountCurrency)
+            : '••••••'}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Record ${schedule.note || schedule.categoryName} now`}
+          onPress={onRecord}
+        >
+          <Text style={styles.scheduleAction}>Record</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
@@ -241,6 +570,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  priorityCard: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  priorityUrgent: { borderColor: '#E8B5AD', backgroundColor: '#FFF9F7' },
+  priorityWarning: { borderColor: '#E8D2A8', backgroundColor: '#FFFCF5' },
+  priorityIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  priorityIconUrgent: { backgroundColor: colors.expenseSoft },
+  priorityIconWarning: { backgroundColor: '#F8EED8' },
+  priorityContent: { flex: 1 },
+  priorityLabel: {
+    color: colors.primary,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  priorityTitle: { color: colors.ink, fontSize: 16, fontWeight: '800', marginTop: 4 },
+  priorityReason: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 5 },
+  priorityAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+  priorityActionText: { color: colors.primary, fontSize: 12, fontWeight: '800' },
   balanceCard: {
     borderRadius: radius.lg,
     padding: spacing.xl,
@@ -319,6 +687,73 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginVertical: spacing.xl,
   },
+  glanceGrid: { flexDirection: 'row', gap: spacing.md },
+  glanceCard: {
+    flex: 1,
+    minHeight: 116,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  glanceTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  glanceLabel: { color: colors.muted, fontSize: 10, fontWeight: '700' },
+  glanceValue: { color: colors.ink, fontSize: 18, fontWeight: '800', marginTop: spacing.md },
+  glanceMeta: { color: colors.muted, fontSize: 10, lineHeight: 15, marginTop: 3 },
+  warningText: { color: colors.warning },
+  smartSection: { marginTop: spacing.xl },
+  smartList: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  scheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  scheduleIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scheduleIconOverdue: { backgroundColor: colors.expenseSoft },
+  scheduleContent: { flex: 1 },
+  scheduleName: { color: colors.ink, fontSize: 13, fontWeight: '800' },
+  scheduleMeta: { color: colors.muted, fontSize: 10, marginTop: 3 },
+  scheduleRight: { alignItems: 'flex-end' },
+  scheduleAmount: { color: colors.ink, fontSize: 11, fontWeight: '800' },
+  scheduleAction: { color: colors.primary, fontSize: 11, fontWeight: '800', marginTop: 5 },
+  negativeText: { color: colors.expense },
+  budgetWatch: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+  },
+  budgetWatchRow: { marginBottom: spacing.lg },
+  budgetWatchTop: { flexDirection: 'row', justifyContent: 'space-between' },
+  budgetWatchName: { color: colors.ink, fontSize: 12, fontWeight: '800' },
+  budgetWatchValue: { color: colors.primary, fontSize: 11, fontWeight: '800' },
+  budgetTrack: {
+    height: 7,
+    backgroundColor: colors.border,
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+    marginTop: spacing.sm,
+  },
+  budgetFill: { height: 7, borderRadius: radius.pill, backgroundColor: colors.primary },
+  budgetFillOver: { backgroundColor: colors.expense },
   action: {
     flex: 1,
     alignItems: 'center',

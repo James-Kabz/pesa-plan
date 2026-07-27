@@ -98,7 +98,12 @@ Status: **Implementation complete; device verification pending**
 Status: **Started**
 
 - [x] Expected-versus-recorded monthly income card
-- [ ] A focused "what needs attention" card with one clear next action
+- [x] Full Today screen with a focused, explainable next action
+- [x] Deterministic priority for overdue schedules, due-soon items, and budget issues
+- [x] At-a-glance upcoming schedule and monthly budget pulse
+- [x] Upcoming schedule review with explicit confirmation before posting
+- [x] Highest-use budget watch and main-currency-safe summaries
+- [x] Privacy masking across all Today monetary values
 - [ ] Faster transaction entry using recent accounts, categories, and amounts
 - [ ] Local category suggestions learned from confirmed transaction descriptions
 - [ ] Global transaction search with useful filters

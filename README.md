@@ -8,7 +8,9 @@ cash flow, budgets, savings, debt, and net worth.
 Version 1.1 is the current signed and device-verified Android release. Version
 2.0 is now in development, beginning with a guided, offline setup for main
 currency, real accounts and opening balances, expected monthly income, and a
-basic budget. Version 1.1 includes:
+basic budget. Its Smart Today screen adds one explainable next action, upcoming
+schedules, budget pacing, and expected-versus-recorded income without posting
+anything automatically. Version 1.1 includes:
 
 - an Expo + React Native + TypeScript foundation;
 - a persistent SQLite database with migrations;

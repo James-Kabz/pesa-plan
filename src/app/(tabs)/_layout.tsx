@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router';
 import { colors } from '@/theme';
 
 const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
-  index: 'grid-outline',
+  index: 'sunny-outline',
   transactions: 'swap-vertical-outline',
   plan: 'calendar-outline',
   debt: 'trending-down-outline',
@@ -36,7 +36,7 @@ export default function TabLayout() {
         ),
       })}
     >
-      <Tabs.Screen name="index" options={{ title: 'Home', tabBarAccessibilityLabel: 'Home' }} />
+      <Tabs.Screen name="index" options={{ title: 'Today', tabBarAccessibilityLabel: 'Today' }} />
       <Tabs.Screen
         name="transactions"
         options={{ title: 'Activity', tabBarAccessibilityLabel: 'Activity' }}
