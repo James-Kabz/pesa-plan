@@ -106,15 +106,57 @@ export default function PlanScreen() {
     const name = schedule.note || schedule.categoryName;
     Alert.alert(
       'Delete this schedule?',
-      `${name} will no longer appear as upcoming. Transactions already recorded from it will remain unchanged.`,
+      `Choose whether to keep transactions already posted from ${name}. Older transactions posted before this update are not linked and must be removed from Activity.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete schedule',
+          text: 'Schedule only',
+          onPress: () => void deleteSchedule(schedule, false),
+        },
+        {
+          text: 'Schedule + transactions',
           style: 'destructive',
+          onPress: () => void deleteSchedule(schedule, true),
+        },
+      ],
+    );
+  }
+
+  async function deleteSchedule(
+    schedule: RecurringTransaction,
+    deletePostedTransactions: boolean,
+  ) {
+    try {
+      const deletedTransactions = await removeRecurring(
+        schedule.id,
+        deletePostedTransactions,
+      );
+      if (deletePostedTransactions && deletedTransactions === 0) {
+        Alert.alert(
+          'Schedule deleted',
+          'No linked posted transactions were found. If this schedule was used before the update, remove that older transaction from Activity.',
+        );
+      }
+    } catch {
+      Alert.alert('Could not delete', 'The schedule was not deleted. Please try again.');
+    }
+  }
+
+  function confirmRecurringPost(schedule: RecurringTransaction) {
+    const name = schedule.note || schedule.categoryName;
+    Alert.alert(
+      `Post ${name}?`,
+      `This will add ${formatMoney(
+        schedule.amountMinor,
+        schedule.accountCurrency,
+      )} as a real ${schedule.type} transaction in ${schedule.accountName}.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Post transaction',
           onPress: () =>
-            void removeRecurring(schedule.id).catch(() =>
-              Alert.alert('Could not delete', 'The schedule was not deleted. Please try again.'),
+            void recordRecurring(schedule).catch(() =>
+              Alert.alert('Could not post', 'The transaction was not recorded. Please try again.'),
             ),
         },
       ],
@@ -289,7 +331,7 @@ export default function PlanScreen() {
                     {formatMoney(item.amountMinor, item.accountCurrency)}
                   </Text>
                   <View style={styles.scheduleActions}>
-                    <Pressable accessibilityRole="button" accessibilityLabel={`Post ${item.note || item.categoryName} now`} onPress={() => void recordRecurring(item)}>
+                    <Pressable accessibilityRole="button" accessibilityLabel={`Post ${item.note || item.categoryName} now`} onPress={() => confirmRecurringPost(item)}>
                       <Text style={styles.post}>Post now</Text>
                     </Pressable>
                     <Pressable

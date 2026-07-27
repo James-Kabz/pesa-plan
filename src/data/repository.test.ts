@@ -213,6 +213,26 @@ describe('finance repository integration', () => {
       (await listTransactions(db)).filter((transaction) => transaction.type !== 'transfer'),
     ).toHaveLength(1);
 
+    await createRecurring(db, {
+      accountId: 'starter-cash',
+      categoryId: 'subscriptions',
+      type: 'expense',
+      amountMinor: 2_000,
+      note: 'Linked subscription',
+      frequency: 'monthly',
+      nextDueAt: '2026-08-01T12:00:00.000Z',
+    });
+    const linkedSchedule = (await listRecurring(db))[0];
+    await postRecurring(db, linkedSchedule);
+    expect(
+      (await listTransactions(db)).filter((transaction) => transaction.type !== 'transfer'),
+    ).toHaveLength(2);
+    await expect(deleteRecurring(db, linkedSchedule.id, true)).resolves.toBe(1);
+    expect(await listRecurring(db)).toHaveLength(0);
+    expect(
+      (await listTransactions(db)).filter((transaction) => transaction.type !== 'transfer'),
+    ).toHaveLength(1);
+
     await createSinkingFund(db, {
       name: 'Insurance',
       targetMinor: 120_000,

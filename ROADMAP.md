@@ -120,7 +120,7 @@ Status: **Started**
 - [x] Confirmed recurring-pattern suggestions without automatic posting
 - [x] Strict weekly and monthly detection with amount-stability and duplicate safeguards
 - [x] Explainable on-device evidence, future due-date calculation, and explicit approval
-- [x] Confirmed schedule deletion that preserves previously posted transactions
+- [x] Confirmed schedule deletion with a choice to keep or remove linked posted transactions
 - [ ] Local bill, pay-day, budget, and goal reminders
 - [ ] Budget pacing based on time remaining in the month
 - [ ] Savings guidance based on real unallocated account balances

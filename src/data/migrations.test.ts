@@ -28,11 +28,15 @@ describe('database migrations', () => {
         'expected_income',
       ]),
     );
-    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(10);
+    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(11);
     expect(raw.exec('SELECT COUNT(*) FROM accounts')[0].values[0][0]).toBe(1);
     expect(raw.exec('SELECT COUNT(*) FROM categories')[0].values[0][0]).toBe(29);
     expect(
       raw.exec(`SELECT COUNT(*) FROM pragma_table_info('savings_goals') WHERE name = 'account_id'`)[0]
+        .values[0][0],
+    ).toBe(1);
+    expect(
+      raw.exec(`SELECT COUNT(*) FROM pragma_table_info('transactions') WHERE name = 'recurring_id'`)[0]
         .values[0][0],
     ).toBe(1);
     expect(
@@ -60,7 +64,7 @@ describe('database migrations', () => {
 
     await migrateDatabase(expo);
 
-    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(10);
+    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(11);
     expect(raw.exec(`SELECT name FROM accounts WHERE id = 'starter-cash'`)[0].values)
       .toEqual([['Recovered wallet']]);
     expect(raw.exec('SELECT COUNT(*) FROM categories')[0].values[0][0]).toBe(29);
@@ -90,7 +94,7 @@ describe('database migrations', () => {
     raw.close();
   });
 
-  it('upgrades a populated version-1 database through version 10 without data loss', async () => {
+  it('upgrades a populated version-1 database through version 11 without data loss', async () => {
     const { raw, expo } = await createTestDatabase();
     await expo.execAsync(`
       PRAGMA foreign_keys = ON;
@@ -134,9 +138,12 @@ describe('database migrations', () => {
 
     await migrateDatabase(expo);
 
-    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(10);
+    expect(raw.exec('PRAGMA user_version')[0].values[0][0]).toBe(11);
     expect(raw.exec(`SELECT note FROM transactions WHERE id = 'legacy-transaction'`)[0].values)
       .toEqual([['Preserve me']]);
+    expect(
+      raw.exec(`SELECT recurring_id FROM transactions WHERE id = 'legacy-transaction'`)[0].values,
+    ).toEqual([[null]]);
     expect(
       raw.exec(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'financial_snapshots'`)[0]
         .values[0][0],

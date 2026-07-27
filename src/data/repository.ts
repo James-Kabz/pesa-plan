@@ -310,19 +310,35 @@ export async function createRecurring(db: SQLiteDatabase, input: RecurringInput)
 export async function deleteRecurring(
   db: SQLiteDatabase,
   id: string,
-): Promise<void> {
-  await db.runAsync('DELETE FROM recurring_transactions WHERE id = ?', id);
+  deletePostedTransactions = false,
+): Promise<number> {
+  let deletedTransactions = 0;
+  await withDatabaseTransaction(db, async (transaction) => {
+    if (deletePostedTransactions) {
+      const result = await transaction.runAsync(
+        'DELETE FROM transactions WHERE recurring_id = ?',
+        id,
+      );
+      deletedTransactions = result.changes;
+    }
+    await transaction.runAsync(
+      'DELETE FROM recurring_transactions WHERE id = ?',
+      id,
+    );
+  });
+  return deletedTransactions;
 }
 
 export async function postRecurring(db: SQLiteDatabase, schedule: RecurringTransaction): Promise<void> {
   await withDatabaseTransaction(db, async (transaction) => {
     await transaction.runAsync(
       `INSERT INTO transactions
-        (id, account_id, category_id, type, amount_minor, note, occurred_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, account_id, category_id, type, amount_minor, note, occurred_at, created_at,
+         recurring_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`, schedule.accountId,
       schedule.categoryId, schedule.type, schedule.amountMinor, schedule.note,
-      new Date().toISOString(), new Date().toISOString(),
+      new Date().toISOString(), new Date().toISOString(), schedule.id,
     );
     const next = new Date(schedule.nextDueAt);
     schedule.frequency === 'weekly'
