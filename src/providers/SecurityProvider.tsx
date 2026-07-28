@@ -130,7 +130,10 @@ export function SecurityProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       setPrivacyCover(state !== 'active');
-      if (state !== 'active') lock();
+      // System authentication briefly makes the app inactive. Lock only when
+      // it actually enters the background so a successful biometric result is
+      // not immediately overwritten by that lifecycle transition.
+      if (state === 'background') lock();
     });
     return () => subscription.remove();
   }, [lock]);

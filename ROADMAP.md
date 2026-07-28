@@ -79,7 +79,7 @@ and under the user's control.
 
 ### Stage 7 — First-time experience and user control
 
-Status: **Implementation complete; device verification pending**
+Status: **Complete**
 
 - [x] Guided, skippable, and resumable first-time setup
 - [x] Main currency selection with three-letter custom codes
@@ -92,7 +92,7 @@ Status: **Implementation complete; device verification pending**
 - [x] Savings explained and modeled as an account transfer/allocation, not an expense
 - [x] Setup review and safe rerun from Settings without duplicate planning records
 - [x] Version 1.1 backup compatibility and no forced setup for existing users
-- [ ] Physical-device setup, migration, accessibility, and small-screen verification
+- [x] Physical-device setup, migration, accessibility, and small-screen verification
 
 ### Stage 8 — Helpful Home and faster entry
 
@@ -138,7 +138,7 @@ Status: **Complete**
 
 ### Stage 10 — Monthly review and Version 2 release
 
-Status: **Feature implementation complete; release verification deferred**
+Status: **Feature implementation complete; final fingerprint check in progress**
 
 - [x] Plain-language monthly review: income, spending, savings, debt, and changes
 - [x] Deterministic insights that explain the numbers behind every suggestion
@@ -148,14 +148,15 @@ Status: **Feature implementation complete; release verification deferred**
   - direct next actions on empty Activity, savings, funds, and debt screens
   - flexible high-use forms, cards, and amount layouts for larger text
   - modal focus and spoken save confirmation for assistive technology
-- [ ] Migration, backup/restore, clean-install, and upgrade release gates
+- [x] Migration, backup/restore, clean-install, and upgrade release gates
 - [ ] Signed Android Version 2 build and physical-device checklist
 
-The remaining release checks are intentionally deferred until the testing
-session: fresh installation, Version 1.1 migration, backup and restore, PIN and
-fingerprint, notification permissions and reminders, offline use, background
-and inactivity locking, small-screen device coverage, Android APK/AAB
-validation, and final feature regression.
+Release verification completed fresh installation, the signed Version 1.1
+upgrade, encrypted backup and restore, PIN and inactivity locking, notification
+permissions and reminders, offline use, background locking, small-screen
+coverage, signed Android APK/AAB validation, and final feature regression. The
+remaining live-device gate is successful fingerprint authentication on the
+Samsung test phone.
 
 ## Product principles
 
