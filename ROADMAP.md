@@ -138,7 +138,7 @@ Status: **Complete**
 
 ### Stage 10 — Monthly review and Version 2 release
 
-Status: **Feature implementation complete; final fingerprint check in progress**
+Status: **Complete**
 
 - [x] Plain-language monthly review: income, spending, savings, debt, and changes
 - [x] Deterministic insights that explain the numbers behind every suggestion
@@ -149,14 +149,13 @@ Status: **Feature implementation complete; final fingerprint check in progress**
   - flexible high-use forms, cards, and amount layouts for larger text
   - modal focus and spoken save confirmation for assistive technology
 - [x] Migration, backup/restore, clean-install, and upgrade release gates
-- [ ] Signed Android Version 2 build and physical-device checklist
+- [x] Signed Android Version 2 build and physical-device checklist
 
 Release verification completed fresh installation, the signed Version 1.1
-upgrade, encrypted backup and restore, PIN and inactivity locking, notification
-permissions and reminders, offline use, background locking, small-screen
-coverage, signed Android APK/AAB validation, and final feature regression. The
-remaining live-device gate is successful fingerprint authentication on the
-Samsung test phone.
+upgrade, encrypted backup and restore, PIN, fingerprint, and inactivity
+locking, notification permissions and reminders, offline use, background
+locking, small-screen coverage, signed Android APK/AAB validation, and final
+feature regression.
 
 ## Product principles
 

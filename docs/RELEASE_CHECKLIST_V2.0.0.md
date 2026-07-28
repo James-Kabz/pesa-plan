@@ -17,11 +17,11 @@ Verification date: 28 July 2026
 
 ### Internal-testing APK
 
-- Build ID: `4dc458e6-8c9b-4609-a2f6-5ef33c9bfcd6`
+- Build ID: `8bf27fcc-7736-4a8d-9a1a-2c953b0cf889`
 - Package: `com.jimkar.pesaplan`
-- Version: `2.0.0` (`versionCode` 6)
+- Version: `2.0.0` (`versionCode` 8)
 - SHA-256:
-  `56415127f3a41489a3c3b8639d3fce98bb7b22a38ac5aa5bcc9eb9c6eab8833f`
+  `34e2455f678d3807aba927f1bad1d6216c79c0666f4c45353abfd4507818124d`
 - Signing-certificate SHA-256:
   `581d8277d3810a7b64869e4216b36e764b831f01ef02b6bacf2657589f63a379`
 - [x] APK archive and Android v2 signature verified
@@ -30,16 +30,19 @@ Verification date: 28 July 2026
 
 ### Google Play production AAB
 
-- Build ID: `924881bd-e8d6-4c5e-89b7-11592feeaa6a`
+- Build ID: `0af07251-8d59-4771-a7c6-1f216a314bfe`
 - Package: `com.jimkar.pesaplan`
-- Version: `2.0.0` (`versionCode` 7)
+- Version: `2.0.0` (`versionCode` 9)
 - SHA-256:
-  `06191fa7561a6cf2a641740abe074799b338c3b2f97112d3830730db1975cfb4`
+  `df886b0eade30351fff666e99c19cac2adecea8afebd14e00e4343b47d6525d6`
 - Signing-certificate SHA-256:
   `581d8277d3810a7b64869e4216b36e764b831f01ef02b6bacf2657589f63a379`
 - [x] AAB archive integrity verified
 - [x] JAR signature verified
 - [x] EAS production build completed successfully
+
+Both final artifacts were built from commit
+`a1b09c6fd12d830e217730189463bedf86bb7316`.
 
 The locally assembled APK and AAB use the Android debug certificate and are
 test artifacts only. The EAS production AAB above is the release-signed
@@ -79,8 +82,15 @@ rejected without replacing the ledger.
 - [x] Immediate background/reopen lock
 - [x] Two-minute inactivity lock
 - [x] Screen-capture protection
-- [ ] Strong fingerprint success, cancellation, and PIN fallback on the
+- [x] Strong fingerprint success, cancellation, and PIN fallback on the
   Samsung device
+
+The first device run exposed a lifecycle race that relocked the app after a
+successful fingerprint. Commit `a1b09c6` limits locking to true background
+transitions while retaining the privacy cover for every non-active state. The
+fixed local release build and final EAS-signed APK both stayed unlocked after
+successful strong fingerprint authentication. The temporary test PIN was
+removed afterward.
 
 ## Reminders, offline use, and device coverage
 
@@ -93,7 +103,7 @@ rejected without replacing the ledger.
 - [x] Today, Activity, Plan, Debt, and Reports render without Metro
 - [x] A 720 × 1280 logical display at 130% font scale keeps setup actions,
   tabs, empty-state actions, and report cards reachable
-- [ ] Complete the final Samsung fingerprint-success check
+- [x] Complete the final Samsung fingerprint-success check
 
 ## Final regression
 
