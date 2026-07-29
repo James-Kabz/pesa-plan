@@ -3,7 +3,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { formatMoney, parseMoneyInput } from '@/domain/money';
+import {
+  formatMoney,
+  formatMoneyInput,
+  parseMoneyInput,
+} from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
@@ -34,7 +38,7 @@ export default function GoalEditorScreen() {
   const parsedSuggestion = Number(suggestedMinor);
   const [amount, setAmount] = useState(
     Number.isFinite(parsedSuggestion) && parsedSuggestion > 0
-      ? (parsedSuggestion / 100).toFixed(2)
+      ? formatMoneyInput((parsedSuggestion / 100).toFixed(2))
       : '',
   );
   const [goalType, setGoalType] = useState<'general' | 'emergency'>('general');
@@ -179,7 +183,7 @@ export default function GoalEditorScreen() {
         <Text style={styles.label}>{goal ? 'Contribution' : 'Target amount'}</Text>
         <View style={styles.moneyRow}>
           <Text style={styles.currency}>{preferences.mainCurrency}</Text>
-          <TextInput accessibilityLabel={goal ? 'Contribution amount' : 'Target amount'} autoFocus={Boolean(goal)} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.amount} />
+          <TextInput accessibilityLabel={goal ? 'Contribution amount' : 'Target amount'} autoFocus={Boolean(goal)} value={amount} onChangeText={(value) => setAmount(formatMoneyInput(value))} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.amount} />
         </View>
         {goal ? (
           <Text style={styles.allocationNote}>

@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { parseMoneyInput } from '@/domain/money';
+import { formatMoneyInput, parseMoneyInput } from '@/domain/money';
 import type { AccountType } from '@/domain/types';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
@@ -36,7 +36,9 @@ export default function AccountEditorScreen() {
   const [type, setType] = useState<AccountType>(existing?.type ?? 'bank');
   const [currency, setCurrency] = useState(existing?.currency ?? preferences.mainCurrency);
   const [openingBalance, setOpeningBalance] = useState(
-    existing ? String(existing.openingBalanceMinor / 100) : '',
+    existing
+      ? formatMoneyInput(String(existing.openingBalanceMinor / 100))
+      : '',
   );
   const [color, setColor] = useState(existing?.color ?? colors.primary);
   const [saving, setSaving] = useState(false);
@@ -146,7 +148,9 @@ export default function AccountEditorScreen() {
               <TextInput
                 accessibilityLabel="Opening balance"
                 value={openingBalance}
-                onChangeText={setOpeningBalance}
+                onChangeText={(value) =>
+                  setOpeningBalance(formatMoneyInput(value))
+                }
                 keyboardType="decimal-pad"
                 placeholder="0.00"
                 placeholderTextColor="#98A19B"

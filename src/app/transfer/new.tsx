@@ -14,7 +14,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { formatMoney, parseMoneyInput } from '@/domain/money';
+import {
+  formatMoney,
+  formatMoneyInput,
+  parseMoneyInput,
+} from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
@@ -102,7 +106,7 @@ export default function NewTransferScreen() {
               accessibilityLabel="Transfer amount"
               autoFocus
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={(value) => setAmount(formatMoneyInput(value))}
               keyboardType="decimal-pad"
               placeholder="0.00"
               placeholderTextColor="#A6AFA9"

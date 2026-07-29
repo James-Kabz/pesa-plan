@@ -26,14 +26,25 @@ export function TransactionRow({
     <Pressable
       accessibilityRole={onPress || onLongPress ? 'button' : undefined}
       accessibilityLabel={`${transaction.note || transaction.categoryName}, ${transaction.accountName}, ${date}, ${amountsVisible ? `${isTransfer ? '' : isIncome ? 'income ' : 'expense '}${formatMoney(transaction.amountMinor, transaction.currency)}` : 'amount hidden'}`}
-      accessibilityHint={onLongPress ? 'Long press to delete' : undefined}
+      accessibilityHint={
+        onPress && onLongPress
+          ? 'Tap to edit. Long press to delete.'
+          : onPress
+            ? 'Tap to edit.'
+            : onLongPress
+              ? 'Long press to delete.'
+              : undefined
+      }
       accessibilityActions={
         onLongPress ? [{ name: 'delete', label: 'Delete transaction' }] : undefined
       }
       onAccessibilityAction={(event) => {
         if (event.nativeEvent.actionName === 'delete') onLongPress?.();
       }}
-      style={({ pressed }) => [styles.row, pressed && onLongPress ? styles.pressed : undefined]}
+      style={({ pressed }) => [
+        styles.row,
+        pressed && (onPress || onLongPress) ? styles.pressed : undefined,
+      ]}
       onLongPress={onLongPress}
       onPress={onPress}
       delayLongPress={450}
@@ -61,19 +72,27 @@ export function TransactionRow({
           {transaction.accountName} · {date}
         </Text>
       </View>
-      <Text
-        style={[
-          styles.amount,
-          isTransfer ? styles.transfer : isIncome ? styles.income : styles.expense,
-        ]}
-      >
-        {amountsVisible ? (
-          <>
-            {isTransfer ? '' : isIncome ? '+' : '−'}
-            {formatMoney(transaction.amountMinor, transaction.currency)}
-          </>
-        ) : '••••••'}
-      </Text>
+      <View style={styles.trailing}>
+        <Text
+          style={[
+            styles.amount,
+            isTransfer ? styles.transfer : isIncome ? styles.income : styles.expense,
+          ]}
+        >
+          {amountsVisible ? (
+            <>
+              {isTransfer ? '' : isIncome ? '+' : '−'}
+              {formatMoney(transaction.amountMinor, transaction.currency)}
+            </>
+          ) : '••••••'}
+        </Text>
+        {onPress ? (
+          <View style={styles.editCue}>
+            <Ionicons name="pencil-outline" size={12} color={colors.primary} />
+            <Text style={styles.editCueText}>Edit</Text>
+          </View>
+        ) : null}
+      </View>
     </Pressable>
   );
 }
@@ -112,6 +131,21 @@ const styles = StyleSheet.create({
   },
   amount: {
     fontSize: 14,
+    fontWeight: '800',
+  },
+  trailing: {
+    alignItems: 'flex-end',
+    marginLeft: spacing.xs,
+  },
+  editCue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 4,
+  },
+  editCueText: {
+    color: colors.primary,
+    fontSize: 10,
     fontWeight: '800',
   },
   income: {

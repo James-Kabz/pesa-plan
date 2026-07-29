@@ -234,9 +234,24 @@ export default function DashboardScreen() {
           <Text style={styles.eyebrow}>TODAY</Text>
           <Text style={styles.greeting}>{greeting}</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Open privacy and data settings" style={styles.profile} onPress={() => router.push('/settings')}>
-          <Ionicons name="person-outline" size={19} color={colors.primary} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open accounts"
+            style={styles.headerButton}
+            onPress={() => router.push('/accounts')}
+          >
+            <Ionicons name="wallet-outline" size={20} color={colors.primary} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open privacy and data settings"
+            style={styles.headerButton}
+            onPress={() => router.push('/settings')}
+          >
+            <Ionicons name="person-outline" size={19} color={colors.primary} />
+          </Pressable>
+        </View>
       </View>
 
       <PriorityCard priority={priority} onPress={() => handlePriorityAction(priority)} />
@@ -300,6 +315,21 @@ export default function DashboardScreen() {
             </Text>
           </View>
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Manage accounts"
+          onPress={() => router.push('/accounts')}
+          style={({ pressed }) => [
+            styles.manageAccounts,
+            pressed && styles.pressed,
+          ]}
+        >
+          <View style={styles.manageAccountsLabel}>
+            <Ionicons name="wallet-outline" size={17} color="#FFFFFF" />
+            <Text style={styles.manageAccountsText}>Manage accounts</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={17} color="#FFFFFF" />
+        </Pressable>
       </LinearGradient>
 
       <View style={styles.quickActions}>
@@ -313,7 +343,11 @@ export default function DashboardScreen() {
           label="Add expense"
           onPress={() => router.push({ pathname: '/transaction/new', params: { type: 'expense' } })}
         />
-        <QuickAction icon="wallet-outline" label="Accounts" onPress={() => router.push('/accounts')} />
+        <QuickAction
+          icon="swap-horizontal-outline"
+          label="Transfer"
+          onPress={() => router.push('/transfer/new')}
+        />
       </View>
 
       <SectionHeader title="At a glance" />
@@ -560,13 +594,32 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.accountList}
       >
         {accounts.map((account) => (
-          <View key={account.id} style={[styles.accountCard, { borderTopColor: account.color }]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Edit ${account.name} account`}
+            key={account.id}
+            onPress={() =>
+              router.push({
+                pathname: '/account/editor',
+                params: { id: account.id },
+              })
+            }
+            style={({ pressed }) => [
+              styles.accountCard,
+              { borderTopColor: account.color },
+              pressed && styles.pressed,
+            ]}
+          >
             <Text style={styles.accountType}>{account.type.replace('_', ' ')}</Text>
             <Text style={styles.accountName}>{account.name}</Text>
             <Text style={styles.accountBalance}>
               {privateValue(formatMoney(account.currentBalanceMinor, account.currency))}
             </Text>
-          </View>
+            <View style={styles.accountEdit}>
+              <Ionicons name="pencil-outline" size={12} color={colors.primary} />
+              <Text style={styles.accountEditText}>Edit account</Text>
+            </View>
+          </Pressable>
         ))}
       </ScrollView>
 
@@ -805,7 +858,11 @@ const styles = StyleSheet.create({
     letterSpacing: -0.9,
     marginTop: 2,
   },
-  profile: {
+  headerActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  headerButton: {
     width: 44,
     height: 44,
     borderRadius: radius.md,
@@ -889,6 +946,25 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.15)',
+  },
+  manageAccounts: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.15)',
+  },
+  manageAccountsLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  manageAccountsText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
   },
   cardMeta: {
     color: '#AFC4BA',
@@ -1123,6 +1199,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     marginTop: spacing.lg,
+  },
+  accountEdit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: spacing.sm,
+  },
+  accountEditText: {
+    color: colors.primary,
+    fontSize: 10,
+    fontWeight: '800',
   },
   recentHeader: {
     marginTop: spacing.xl,

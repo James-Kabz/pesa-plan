@@ -18,6 +18,7 @@ import {
 import { Screen } from '@/components/Screen';
 import { EmptyState } from '@/components/EmptyState';
 import { TransactionRow } from '@/components/TransactionRow';
+import { formatMoneyInput } from '@/domain/money';
 import {
   activeTransactionFilterCount,
   DEFAULT_TRANSACTION_FILTERS,
@@ -76,11 +77,12 @@ export default function TransactionsScreen() {
   }
 
   function updateAmount(kind: 'minimum' | 'maximum', value: string) {
-    if (kind === 'minimum') setMinimumText(value);
-    else setMaximumText(value);
+    const formatted = formatMoneyInput(value);
+    if (kind === 'minimum') setMinimumText(formatted);
+    else setMaximumText(formatted);
     updateFilters({
       [kind === 'minimum' ? 'minAmountMinor' : 'maxAmountMinor']:
-        parseOptionalSearchAmount(value),
+        parseOptionalSearchAmount(formatted),
     });
   }
 
@@ -181,11 +183,16 @@ export default function TransactionsScreen() {
       {transactions.length ? (
         <>
           <View style={styles.resultSummary}>
-            <Text style={styles.resultCount}>
-              {visibleTransactions.length === transactions.length
-                ? `${transactions.length} records`
-                : `${visibleTransactions.length} of ${transactions.length} records`}
-            </Text>
+            <View>
+              <Text style={styles.resultCount}>
+                {visibleTransactions.length === transactions.length
+                  ? `${transactions.length} records`
+                  : `${visibleTransactions.length} of ${transactions.length} records`}
+              </Text>
+              <Text style={styles.editHint}>
+                Tap income or expenses to edit · hold to delete
+              </Text>
+            </View>
             {activeFilterCount ? (
               <Pressable
                 accessibilityRole="button"
@@ -617,6 +624,11 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 11,
     fontWeight: '700',
+  },
+  editHint: {
+    color: colors.muted,
+    fontSize: 10,
+    marginTop: 3,
   },
   clearFilters: {
     color: colors.primary,

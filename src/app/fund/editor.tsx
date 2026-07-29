@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { parseMoneyInput } from '@/domain/money';
+import { formatMoneyInput, parseMoneyInput } from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
@@ -54,7 +54,7 @@ export default function FundEditorScreen() {
         <Text style={styles.label}>{fund ? 'Contribution' : 'Savings target'}</Text>
         <View style={styles.amountRow}>
           <Text style={styles.currency}>{preferences.mainCurrency}</Text>
-          <TextInput accessibilityLabel={fund ? 'Contribution amount' : 'Savings target'} autoFocus={Boolean(fund)} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.amount} />
+          <TextInput accessibilityLabel={fund ? 'Contribution amount' : 'Savings target'} autoFocus={Boolean(fund)} value={amount} onChangeText={(value) => setAmount(formatMoneyInput(value))} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.amount} />
         </View>
         {!fund ? (
           <>

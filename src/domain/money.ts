@@ -21,6 +21,23 @@ export function parseMoneyInput(value: string): number | null {
   return Math.round(amount * 100);
 }
 
+export function formatMoneyInput(value: string): string {
+  const sanitized = value.replace(/,/g, '').replace(/[^\d.]/g, '');
+  if (!sanitized) return '';
+
+  const decimalIndex = sanitized.indexOf('.');
+  const rawWhole =
+    decimalIndex === -1 ? sanitized : sanitized.slice(0, decimalIndex);
+  const rawDecimal =
+    decimalIndex === -1
+      ? ''
+      : sanitized.slice(decimalIndex + 1).replace(/\./g, '').slice(0, 2);
+  const whole = (rawWhole || '0').replace(/^0+(?=\d)/, '');
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+  return decimalIndex === -1 ? grouped : `${grouped}.${rawDecimal}`;
+}
+
 export function summarizeTransactions(
   transactions: Pick<FinanceTransaction, 'type' | 'amountMinor'>[],
 ): MonthlySummary {

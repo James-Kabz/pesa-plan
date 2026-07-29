@@ -3,7 +3,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { formatMoney, parseMoneyInput } from '@/domain/money';
+import {
+  formatMoney,
+  formatMoneyInput,
+  parseMoneyInput,
+} from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
@@ -23,7 +27,7 @@ export default function DebtEditorScreen() {
   const [payment, setPayment] = useState(() => {
     const minor = Number(suggestedMinor);
     return Number.isFinite(minor) && minor > 0
-      ? (minor / 100).toFixed(2)
+      ? formatMoneyInput((minor / 100).toFixed(2))
       : '';
   });
   const [saving, setSaving] = useState(false);
@@ -129,7 +133,7 @@ export default function DebtEditorScreen() {
               </View>
               <View style={styles.field}>
                 <Text style={styles.label}>Minimum payment</Text>
-                <TextInput accessibilityLabel="Minimum payment" value={minimum} onChangeText={setMinimum} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#98A19B" style={styles.input} />
+                <TextInput accessibilityLabel="Minimum payment" value={minimum} onChangeText={(value) => setMinimum(formatMoneyInput(value))} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#98A19B" style={styles.input} />
               </View>
             </View>
             <Text style={styles.label}>Monthly due day (optional)</Text>
@@ -149,7 +153,7 @@ function MoneyInput({ value, onChangeText, currency, autoFocus = false }: { valu
   return (
     <View style={styles.moneyRow}>
       <Text style={styles.currency}>{currency}</Text>
-      <TextInput accessibilityLabel="Money amount" autoFocus={autoFocus} value={value} onChangeText={onChangeText} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.money} />
+      <TextInput accessibilityLabel="Money amount" autoFocus={autoFocus} value={value} onChangeText={(next) => onChangeText(formatMoneyInput(next))} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#A6AFA9" style={styles.money} />
     </View>
   );
 }

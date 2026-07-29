@@ -26,7 +26,11 @@ import {
   normalizeDescription,
   suggestCategory,
 } from '@/domain/categorySuggestion';
-import { formatMoney, parseMoneyInput } from '@/domain/money';
+import {
+  formatMoney,
+  formatMoneyInput,
+  parseMoneyInput,
+} from '@/domain/money';
 import type { FinanceTransaction, TransactionType } from '@/domain/types';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
@@ -44,8 +48,13 @@ export default function NewTransactionScreen() {
     initialType,
   );
   const [type, setType] = useState<TransactionType>(initialType);
-  const [amount, setAmount] = useState(existing ? String(existing.amountMinor / 100) : '');
+  const [amount, setAmount] = useState(
+    existing ? formatMoneyInput(String(existing.amountMinor / 100)) : '',
+  );
   const [note, setNote] = useState(existing?.note ?? '');
+  const [occurredOn, setOccurredOn] = useState(() =>
+    toLocalDateValue(existing?.occurredAt ?? new Date().toISOString()),
+  );
   const [accountId, setAccountId] = useState(existing?.accountId ?? initialDefaults.accountId);
   const relevantCategories = useMemo(
     () => orderCategoriesForEntry(categories, transactions, type),
@@ -94,7 +103,7 @@ export default function NewTransactionScreen() {
     setType(template.type as TransactionType);
     setAccountId(template.accountId);
     setCategoryId(template.categoryId);
-    setAmount(String(template.amountMinor / 100));
+    setAmount(formatMoneyInput(String(template.amountMinor / 100)));
     setNote(template.note ?? '');
     setDismissedSuggestionKey('');
     amountInputRef.current?.focus();
@@ -116,6 +125,11 @@ export default function NewTransactionScreen() {
       Alert.alert('Missing details', 'Choose an account and category.');
       return;
     }
+    const occurredAt = resolveOccurredAt(occurredOn, existing?.occurredAt);
+    if (!occurredAt) {
+      Alert.alert('Check the date', 'Enter a real date in YYYY-MM-DD format.');
+      return;
+    }
 
     try {
       setSaving(true);
@@ -126,7 +140,7 @@ export default function NewTransactionScreen() {
         type,
         amountMinor,
         note,
-        occurredAt: existing?.occurredAt ?? new Date().toISOString(),
+        occurredAt,
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (addAnother && !existing) {
@@ -234,7 +248,7 @@ export default function NewTransactionScreen() {
               accessibilityLabel="Transaction amount"
               autoFocus
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={(value) => setAmount(formatMoneyInput(value))}
               keyboardType="decimal-pad"
               placeholder="0.00"
               placeholderTextColor="#A6AFA9"
@@ -251,7 +265,9 @@ export default function NewTransactionScreen() {
                     selectedAccount?.currency,
                   )}`}
                   key={amountMinor}
-                  onPress={() => setAmount(String(amountMinor / 100))}
+                  onPress={() =>
+                    setAmount(formatMoneyInput(String(amountMinor / 100)))
+                  }
                   style={styles.amountShortcut}
                 >
                   <Text style={styles.amountShortcutText}>
@@ -261,6 +277,24 @@ export default function NewTransactionScreen() {
               ))}
             </View>
           ) : null}
+
+          <Text style={styles.label}>Transaction date</Text>
+          <TextInput
+            accessibilityLabel="Transaction date"
+            value={occurredOn}
+            onChangeText={(value) =>
+              setOccurredOn(
+                value.replace(/[^\d-]/g, '').slice(0, 10),
+              )
+            }
+            keyboardType="numbers-and-punctuation"
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor="#98A19B"
+            style={styles.dateInput}
+          />
+          <Text style={styles.dateHint}>
+            Use YYYY-MM-DD. Editing the date moves this entry to that month.
+          </Text>
 
           <Text style={styles.label}>Account</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -546,6 +580,23 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   amountShortcutText: { color: colors.primary, fontSize: 11, fontWeight: '800' },
+  dateInput: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '700',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  dateHint: {
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 15,
+    marginTop: spacing.xs,
+  },
   label: {
     color: colors.ink,
     fontSize: 14,
@@ -716,3 +767,41 @@ const styles = StyleSheet.create({
   },
   saveAnotherText: { color: colors.primary, fontSize: 14, fontWeight: '800' },
 });
+
+function toLocalDateValue(value: string): string {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function resolveOccurredAt(
+  value: string,
+  original?: string,
+): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const [, yearText, monthText, dayText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const originalDate = original ? new Date(original) : new Date();
+  const date = new Date(
+    year,
+    month - 1,
+    day,
+    originalDate.getHours(),
+    originalDate.getMinutes(),
+    originalDate.getSeconds(),
+    originalDate.getMilliseconds(),
+  );
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return date.toISOString();
+}

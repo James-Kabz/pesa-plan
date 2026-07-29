@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { parseMoneyInput } from '@/domain/money';
+import { formatMoneyInput, parseMoneyInput } from '@/domain/money';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
@@ -27,7 +27,11 @@ export default function BudgetEditorScreen() {
     [categories],
   );
   const [categoryId, setCategoryId] = useState(existing?.categoryId ?? expenseCategories[0]?.id ?? '');
-  const [amount, setAmount] = useState(existing ? String(existing.limitMinor / 100) : '');
+  const [amount, setAmount] = useState(
+    existing
+      ? formatMoneyInput(String(existing.limitMinor / 100))
+      : '',
+  );
   const [customCategoryName, setCustomCategoryName] = useState('');
   const [customCategoryDraft, setCustomCategoryDraft] = useState('');
   const [customCategoryError, setCustomCategoryError] = useState('');
@@ -135,7 +139,7 @@ export default function BudgetEditorScreen() {
             accessibilityLabel="Monthly budget limit"
             autoFocus
             value={amount}
-            onChangeText={setAmount}
+            onChangeText={(value) => setAmount(formatMoneyInput(value))}
             keyboardType="decimal-pad"
             placeholder="0.00"
             placeholderTextColor="#A6AFA9"

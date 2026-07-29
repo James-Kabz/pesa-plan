@@ -14,7 +14,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { formatMoney, parseMoneyInput } from '@/domain/money';
+import {
+  formatMoney,
+  formatMoneyInput,
+  parseMoneyInput,
+} from '@/domain/money';
 import type { OnboardingDraft } from '@/domain/types';
 import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
@@ -42,12 +46,17 @@ function initialDraft(
   return {
     mainCurrency,
     incomeName: income?.name ?? 'Monthly income',
-    incomeAmount: income ? String(income.amountMinor / 100) : '',
+    incomeAmount: income
+      ? formatMoneyInput(String(income.amountMinor / 100))
+      : '',
     incomeAccountId: income?.accountId ?? '',
     incomePayDay: income ? String(income.payDay) : '',
     incomeIsEstimate: income?.amountIsEstimate ?? false,
     budgetAmounts: Object.fromEntries(
-      budgets.map((budget) => [budget.categoryId, String(budget.limitMinor / 100)]),
+      budgets.map((budget) => [
+        budget.categoryId,
+        formatMoneyInput(String(budget.limitMinor / 100)),
+      ]),
     ),
   };
 }
@@ -481,7 +490,9 @@ function IncomeStep({
           <TextInput
             accessibilityLabel="Expected monthly income"
             value={draft.incomeAmount}
-            onChangeText={(value) => update('incomeAmount', value)}
+            onChangeText={(value) =>
+              update('incomeAmount', formatMoneyInput(value))
+            }
             keyboardType="decimal-pad"
             placeholder="0.00"
             placeholderTextColor="#98A19B"
@@ -587,7 +598,9 @@ function BudgetStep({
           <TextInput
             accessibilityLabel={`${category.name} monthly budget`}
             value={draft.budgetAmounts[category.id] ?? ''}
-            onChangeText={(value) => updateBudget(category.id, value)}
+            onChangeText={(value) =>
+              updateBudget(category.id, formatMoneyInput(value))
+            }
             keyboardType="decimal-pad"
             placeholder="0"
             placeholderTextColor="#98A19B"

@@ -4,12 +4,28 @@ import {
   emergencyFundMonths,
   estimatePayoffMonths,
   debtToIncomeRatio,
+  formatMoneyInput,
   forecastRecurringNet,
   getDueStatus,
   orderDebts,
   parseMoneyInput,
   summarizeTransactions,
 } from './money';
+
+describe('formatMoneyInput', () => {
+  it('adds thousands separators while preserving up to two decimals', () => {
+    expect(formatMoneyInput('1000')).toBe('1,000');
+    expect(formatMoneyInput('1234567.89')).toBe('1,234,567.89');
+    expect(formatMoneyInput('1,234,567.8')).toBe('1,234,567.8');
+  });
+
+  it('keeps partial decimal entry usable and removes invalid characters', () => {
+    expect(formatMoneyInput('1000.')).toBe('1,000.');
+    expect(formatMoneyInput('.5')).toBe('0.5');
+    expect(formatMoneyInput('KES 001000.999')).toBe('1,000.99');
+    expect(formatMoneyInput('')).toBe('');
+  });
+});
 
 describe('parseMoneyInput', () => {
   it('converts decimal input into integer minor units', () => {
