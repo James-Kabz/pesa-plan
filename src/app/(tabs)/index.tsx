@@ -14,9 +14,10 @@ import {
 } from '@/domain/savingsGuidance';
 import {
   buildTodayPriority,
-  getBudgetPacing,
+  getBudgetGuidance,
   getBudgetPulse,
   getUpcomingSchedules,
+  type BudgetGuidance,
   type TodayPriority,
 } from '@/domain/today';
 import type { RecurringTransaction } from '@/domain/types';
@@ -54,7 +55,7 @@ export default function DashboardScreen() {
   const incomeStillExpected = Math.max(0, expectedMonthlyIncome - monthlySummary.incomeMinor);
   const today = new Date();
   const dayKey = today.toDateString();
-  const budgetPulse = useMemo(() => getBudgetPulse(budgets, today), [budgets, dayKey]);
+  const budgetPulse = useMemo(() => getBudgetPulse(budgets), [budgets]);
   const savingsGuidance = useMemo(
     () =>
       getSavingsGuidance(
@@ -112,12 +113,18 @@ export default function DashboardScreen() {
     () =>
       [...budgets]
         .sort((a, b) => {
-          const rank = { over: 3, used_up: 2, watch: 1, on_track: 0 };
-          const aPacing = getBudgetPacing(a, today);
-          const bPacing = getBudgetPacing(b, today);
+          const rank = {
+            over: 4,
+            used_up: 3,
+            tight: 2,
+            comfortable: 1,
+            untouched: 0,
+          };
+          const aGuidance = getBudgetGuidance(a);
+          const bGuidance = getBudgetGuidance(b);
           return (
-            rank[bPacing.status] -
-              rank[aPacing.status] ||
+            rank[bGuidance.status] -
+              rank[aGuidance.status] ||
             b.spentMinor / b.limitMinor -
               a.spentMinor / a.limitMinor
           );
@@ -327,7 +334,7 @@ export default function DashboardScreen() {
           }
         />
         <GlanceCard
-          icon="speedometer-outline"
+          icon="compass-outline"
           label="Budget pulse"
           value={
             budgetPulse.status === 'none'
@@ -343,9 +350,13 @@ export default function DashboardScreen() {
               ? 'Add a simple plan'
               : privateValue(
                   `${formatMoney(
-                    budgetPulse.safePerDayMinor,
+                    budgetPulse.availableMinor,
                     preferences.mainCurrency,
-                  )}/day · ${budgetPulse.daysRemaining}d`,
+                  )} left${
+                    budgetPulse.attentionCount
+                      ? ` · ${budgetPulse.attentionCount} to review`
+                      : ''
+                  }`,
                 )
           }
           warning={budgetPulse.status === 'over' || budgetPulse.status === 'watch'}
@@ -457,15 +468,26 @@ export default function DashboardScreen() {
             style={styles.budgetWatch}
           >
             {watchedBudgets.map((budget) => {
-              const pacing = getBudgetPacing(budget, today);
+              const spendAmounts = transactions
+                .filter(
+                  (transaction) =>
+                    transaction.type === 'expense' &&
+                    transaction.categoryId === budget.categoryId &&
+                    transaction.currency === preferences.mainCurrency &&
+                    transaction.occurredAt.slice(0, 7) === budget.month,
+                )
+                .map((transaction) => transaction.amountMinor);
+              const guidance = getBudgetGuidance(budget, spendAmounts);
               const paceLabel =
-                pacing.status === 'over'
+                guidance.status === 'over'
                   ? 'Over budget'
-                  : pacing.status === 'used_up'
-                    ? 'Limit used'
-                    : pacing.status === 'watch'
-                      ? 'Ahead of pace'
-                      : 'On track';
+                  : guidance.status === 'used_up'
+                    ? 'Budget used'
+                    : guidance.status === 'tight'
+                      ? 'Little room left'
+                      : guidance.status === 'untouched'
+                        ? 'Ready when needed'
+                        : 'Room available';
               return (
                 <View key={budget.id} style={styles.budgetWatchRow}>
                   <View style={styles.budgetWatchTop}>
@@ -473,9 +495,9 @@ export default function DashboardScreen() {
                     <Text
                       style={[
                         styles.budgetWatchValue,
-                        pacing.status === 'over' && styles.negativeText,
-                        (pacing.status === 'watch' ||
-                          pacing.status === 'used_up') &&
+                        guidance.status === 'over' && styles.negativeText,
+                        (guidance.status === 'tight' ||
+                          guidance.status === 'used_up') &&
                           styles.warningText,
                       ]}
                     >
@@ -494,10 +516,10 @@ export default function DashboardScreen() {
                             (budget.spentMinor / budget.limitMinor) * 100,
                           )}%`,
                         },
-                        (pacing.status === 'watch' ||
-                          pacing.status === 'used_up') &&
+                        (guidance.status === 'tight' ||
+                          guidance.status === 'used_up') &&
                           styles.budgetFillWatch,
-                        pacing.status === 'over' && styles.budgetFillOver,
+                        guidance.status === 'over' && styles.budgetFillOver,
                       ]}
                     />
                   </View>
@@ -505,24 +527,21 @@ export default function DashboardScreen() {
                     <Text
                       style={[
                         styles.budgetPaceStatus,
-                        pacing.status === 'over' && styles.negativeText,
-                        (pacing.status === 'watch' ||
-                          pacing.status === 'used_up') &&
+                        guidance.status === 'over' && styles.negativeText,
+                        (guidance.status === 'tight' ||
+                          guidance.status === 'used_up') &&
                           styles.warningText,
                       ]}
                     >
                       {paceLabel}
                     </Text>
                     <Text style={styles.budgetPaceDaily}>
-                      {pacing.status === 'over' ||
-                      pacing.status === 'used_up'
-                        ? 'Pause category'
-                        : privateValue(
-                            `${formatMoney(
-                              pacing.safePerDayMinor,
-                              preferences.mainCurrency,
-                            )}/day`,
-                          )}
+                      {privateValue(
+                        getCompactBudgetGuidance(
+                          guidance,
+                          preferences.mainCurrency,
+                        ),
+                      )}
                     </Text>
                   </View>
                 </View>
@@ -574,6 +593,25 @@ export default function DashboardScreen() {
       </View>
     </Screen>
   );
+}
+
+function getCompactBudgetGuidance(
+  guidance: BudgetGuidance,
+  currency: string,
+): string {
+  if (guidance.status === 'over') {
+    return `${formatMoney(Math.abs(guidance.remainingMinor), currency)} over`;
+  }
+  if (guidance.status === 'used_up') return 'No room left';
+  if (guidance.status === 'untouched') return 'Full budget left';
+  if (guidance.typicalSpendMinor && guidance.similarSpendsLeft !== null) {
+    return guidance.similarSpendsLeft > 0
+      ? `About ${guidance.similarSpendsLeft} similar ${
+          guidance.similarSpendsLeft === 1 ? 'spend' : 'spends'
+        } left`
+      : 'Below one recent spend';
+  }
+  return `${Math.round(guidance.remainingRatio * 100)}% left`;
 }
 
 function getSavingsActionLabel(guidance: SavingsGuidance): string {

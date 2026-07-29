@@ -27,7 +27,7 @@ export interface TodayPriority {
     | 'overdue'
     | 'due_soon'
     | 'budget_over'
-    | 'budget_pace'
+    | 'budget_low'
     | 'income_expected'
     | 'budget_setup'
     | 'savings_setup'
@@ -49,21 +49,21 @@ export interface BudgetPulse {
   limitMinor: number;
   spentMinor: number;
   remainingMinor: number;
-  safePerDayMinor: number;
-  daysRemaining: number;
+  availableMinor: number;
+  overageMinor: number;
+  attentionCount: number;
   spentRatio: number;
-  monthProgress: number;
   status: 'none' | 'on_track' | 'watch' | 'over';
 }
 
-export interface BudgetPacing {
+export interface BudgetGuidance {
   remainingMinor: number;
-  safePerDayMinor: number;
-  projectedSpentMinor: number;
-  daysRemaining: number;
   spentRatio: number;
-  monthProgress: number;
-  status: 'on_track' | 'watch' | 'used_up' | 'over';
+  remainingRatio: number;
+  spendCount: number;
+  typicalSpendMinor: number | null;
+  similarSpendsLeft: number | null;
+  status: 'untouched' | 'comfortable' | 'tight' | 'used_up' | 'over';
 }
 
 export interface TodayInput {
@@ -88,80 +88,90 @@ function daysUntil(date: string, now: Date): number {
   return Math.round((startOfLocalDay(new Date(date)) - startOfLocalDay(now)) / 86_400_000);
 }
 
-export function getBudgetPulse(budgets: MonthlyBudget[], now = new Date()): BudgetPulse {
+function getTypicalSpendMinor(spendAmountsMinor: number[]): number | null {
+  const amounts = spendAmountsMinor
+    .filter((amount) => amount > 0)
+    .sort((a, b) => a - b);
+  if (!amounts.length) return null;
+  const middle = Math.floor(amounts.length / 2);
+  return amounts.length % 2
+    ? amounts[middle]
+    : Math.round((amounts[middle - 1] + amounts[middle]) / 2);
+}
+
+export function getBudgetPulse(budgets: MonthlyBudget[]): BudgetPulse {
   const limitMinor = budgets.reduce((sum, budget) => sum + budget.limitMinor, 0);
   const spentMinor = budgets.reduce((sum, budget) => sum + budget.spentMinor, 0);
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const monthProgress = Math.min(1, Math.max(0, now.getDate() / daysInMonth));
   const spentRatio = limitMinor > 0 ? spentMinor / limitMinor : 0;
   const remainingMinor = limitMinor - spentMinor;
-  const pacing = budgets.map((budget) => getBudgetPacing(budget, now));
-  const daysRemaining = Math.max(1, daysInMonth - now.getDate() + 1);
-  const safePerDayMinor = Math.floor(
-    pacing.reduce(
-      (sum, item) => sum + Math.max(0, item.remainingMinor),
-      0,
-    ) / daysRemaining,
+  const guidance = budgets.map((budget) => getBudgetGuidance(budget));
+  const availableMinor = guidance.reduce(
+    (sum, item) => sum + Math.max(0, item.remainingMinor),
+    0,
   );
-  const hasOverBudgetCategory = pacing.some(({ status }) => status === 'over');
-  const hasFastBudgetCategory = pacing.some(({ status }) => status === 'watch');
+  const overageMinor = guidance.reduce(
+    (sum, item) => sum + Math.max(0, -item.remainingMinor),
+    0,
+  );
+  const attentionCount = guidance.filter(
+    ({ status }) =>
+      status === 'tight' || status === 'used_up' || status === 'over',
+  ).length;
+  const hasOverBudgetCategory = guidance.some(({ status }) => status === 'over');
   const status =
     !limitMinor
       ? 'none'
-      : spentRatio > 1 || hasOverBudgetCategory
+      : hasOverBudgetCategory
         ? 'over'
-        : spentRatio > monthProgress + 0.15 || hasFastBudgetCategory
+        : attentionCount > 0
           ? 'watch'
           : 'on_track';
   return {
     limitMinor,
     spentMinor,
     remainingMinor,
-    safePerDayMinor,
-    daysRemaining,
+    availableMinor,
+    overageMinor,
+    attentionCount,
     spentRatio,
-    monthProgress,
     status,
   };
 }
 
-export function getBudgetPacing(
+export function getBudgetGuidance(
   budget: Pick<MonthlyBudget, 'limitMinor' | 'spentMinor'>,
-  now = new Date(),
-): BudgetPacing {
-  const daysInMonth = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-  ).getDate();
-  const elapsedDays = Math.min(daysInMonth, Math.max(1, now.getDate()));
-  const daysRemaining = daysInMonth - elapsedDays + 1;
+  spendAmountsMinor: number[] = [],
+): BudgetGuidance {
   const remainingMinor = budget.limitMinor - budget.spentMinor;
   const spentRatio =
     budget.limitMinor > 0 ? budget.spentMinor / budget.limitMinor : 0;
-  const monthProgress = elapsedDays / daysInMonth;
-  const safePerDayMinor = Math.floor(
-    Math.max(0, remainingMinor) / daysRemaining,
-  );
-  const projectedSpentMinor = Math.round(
-    (budget.spentMinor / elapsedDays) * daysInMonth,
-  );
+  const remainingRatio =
+    budget.limitMinor > 0 ? Math.max(0, remainingMinor) / budget.limitMinor : 0;
+  const typicalSpendMinor = getTypicalSpendMinor(spendAmountsMinor);
+  const similarSpendsLeft =
+    typicalSpendMinor && remainingMinor > 0
+      ? Math.floor(remainingMinor / typicalSpendMinor)
+      : typicalSpendMinor
+        ? 0
+        : null;
   const status =
     remainingMinor < 0
       ? 'over'
       : remainingMinor === 0
         ? 'used_up'
-        : spentRatio > monthProgress + 0.15
-          ? 'watch'
-          : 'on_track';
+        : budget.spentMinor === 0
+          ? 'untouched'
+          : remainingRatio <= 0.2
+            ? 'tight'
+            : 'comfortable';
 
   return {
     remainingMinor,
-    safePerDayMinor,
-    projectedSpentMinor,
-    daysRemaining,
     spentRatio,
-    monthProgress,
+    remainingRatio,
+    spendCount: spendAmountsMinor.filter((amount) => amount > 0).length,
+    typicalSpendMinor,
+    similarSpendsLeft,
     status,
   };
 }
@@ -230,27 +240,35 @@ export function buildTodayPriority(input: TodayInput): TodayPriority {
     };
   }
 
-  const monthProgress = getBudgetPulse(input.budgets, input.now).monthProgress;
-  const fastBudget = [...input.budgets]
+  const lowBudget = [...input.budgets]
     .filter(
       (budget) =>
         budget.spentMinor <= budget.limitMinor &&
-        budget.spentMinor / budget.limitMinor > monthProgress + 0.15,
+        budget.limitMinor - budget.spentMinor <= budget.limitMinor * 0.2,
     )
     .sort(
       (a, b) =>
-        b.spentMinor / b.limitMinor - a.spentMinor / a.limitMinor,
+        (a.limitMinor - a.spentMinor) / a.limitMinor -
+        (b.limitMinor - b.spentMinor) / b.limitMinor,
     )[0];
-  if (fastBudget) {
+  if (lowBudget) {
+    const remainingPercent = Math.max(
+      0,
+      Math.round(
+        ((lowBudget.limitMinor - lowBudget.spentMinor) /
+          lowBudget.limitMinor) *
+          100,
+      ),
+    );
     return {
-      kind: 'budget_pace',
+      kind: 'budget_low',
       tone: 'warning',
-      title: `${fastBudget.categoryName} is moving quickly`,
-      reason: 'You have used a larger share of this budget than the share of the month completed.',
+      title: `${lowBudget.categoryName} has little room left`,
+      reason: `Only ${remainingPercent}% of this monthly budget remains.`,
       action: 'review_budget',
       actionLabel: 'See budget',
-      itemId: fastBudget.id,
-      amountMinor: fastBudget.limitMinor - fastBudget.spentMinor,
+      itemId: lowBudget.id,
+      amountMinor: lowBudget.limitMinor - lowBudget.spentMinor,
     };
   }
 
@@ -289,7 +307,7 @@ export function buildTodayPriority(input: TodayInput): TodayPriority {
       kind: 'budget_setup',
       tone: 'neutral',
       title: 'Give this month a simple spending plan',
-      reason: 'A few category limits will make your daily guidance more useful.',
+      reason: 'A few category limits will give you a clear view of what is still available.',
       action: 'create_budget',
       actionLabel: 'Create a budget',
     };

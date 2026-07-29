@@ -11,7 +11,7 @@ import type {
 } from './types';
 import {
   buildTodayPriority,
-  getBudgetPacing,
+  getBudgetGuidance,
   getBudgetPulse,
   getUpcomingSchedules,
 } from './today';
@@ -84,7 +84,7 @@ describe('Today priority', () => {
     ]);
   });
 
-  it('flags overspending before fast budget pacing', () => {
+  it('flags overspending before low-room budget guidance', () => {
     const budgets = [
       {
         id: 'food-2026-07',
@@ -110,10 +110,10 @@ describe('Today priority', () => {
       itemId: 'food-2026-07',
       amountMinor: 2_000,
     });
-    expect(getBudgetPulse(budgets, now).status).toBe('over');
+    expect(getBudgetPulse(budgets).status).toBe('over');
   });
 
-  it('identifies spending that is ahead of the month', () => {
+  it('identifies a category with little spending room left', () => {
     const budgets = [
       {
         id: 'food-2026-07',
@@ -126,10 +126,11 @@ describe('Today priority', () => {
       },
     ];
     expect(buildTodayPriority(input({ budgets }))).toMatchObject({
-      kind: 'budget_pace',
+      kind: 'budget_low',
       itemId: 'food-2026-07',
+      reason: 'Only 10% of this monthly budget remains.',
     });
-    expect(getBudgetPulse(budgets, now).status).toBe('watch');
+    expect(getBudgetPulse(budgets).status).toBe('watch');
   });
 
   it('prompts for expected income only after the planned pay day', () => {
@@ -296,65 +297,72 @@ describe('Today priority', () => {
   });
 });
 
-describe('Budget pacing', () => {
+describe('Budget Compass', () => {
   const budget = {
     limitMinor: 100_000,
     spentMinor: 30_000,
   };
 
-  it('calculates an inclusive daily guide and projected month-end spend', () => {
-    expect(getBudgetPacing(budget, now)).toMatchObject({
+  it('uses real transaction sizes instead of a calendar-day allowance', () => {
+    expect(getBudgetGuidance(budget, [10_000, 15_000, 20_000])).toMatchObject({
       remainingMinor: 70_000,
-      safePerDayMinor: 5_833,
-      projectedSpentMinor: 46_500,
-      daysRemaining: 12,
-      status: 'on_track',
+      remainingRatio: 0.7,
+      spendCount: 3,
+      typicalSpendMinor: 15_000,
+      similarSpendsLeft: 4,
+      status: 'comfortable',
     });
   });
 
-  it('identifies fast, fully used, and over-budget categories', () => {
+  it('identifies tight, fully used, and over-budget categories', () => {
     expect(
-      getBudgetPacing({ ...budget, spentMinor: 90_000 }, now),
+      getBudgetGuidance(
+        { ...budget, spentMinor: 90_000 },
+        [20_000, 25_000],
+      ),
     ).toMatchObject({
-      safePerDayMinor: 833,
-      status: 'watch',
+      typicalSpendMinor: 22_500,
+      similarSpendsLeft: 0,
+      status: 'tight',
     });
     expect(
-      getBudgetPacing({ ...budget, spentMinor: 100_000 }, now),
+      getBudgetGuidance({ ...budget, spentMinor: 100_000 }, [50_000, 50_000]),
     ).toMatchObject({
-      safePerDayMinor: 0,
+      similarSpendsLeft: 0,
       status: 'used_up',
     });
     expect(
-      getBudgetPacing({ ...budget, spentMinor: 110_000 }, now),
+      getBudgetGuidance({ ...budget, spentMinor: 110_000 }, [55_000, 55_000]),
     ).toMatchObject({
       remainingMinor: -10_000,
-      safePerDayMinor: 0,
+      similarSpendsLeft: 0,
       status: 'over',
     });
   });
 
-  it('uses the full remaining amount as the final-day guide', () => {
-    expect(
-      getBudgetPacing(budget, new Date(2026, 6, 31, 12)),
-    ).toMatchObject({
-      safePerDayMinor: 70_000,
-      daysRemaining: 1,
+  it('keeps an untouched category ready for a lump purchase', () => {
+    expect(getBudgetGuidance({ ...budget, spentMinor: 0 })).toMatchObject({
+      remainingMinor: 100_000,
+      remainingRatio: 1,
+      spendCount: 0,
+      typicalSpendMinor: null,
+      similarSpendsLeft: null,
+      status: 'untouched',
     });
   });
 
-  it('aggregates only positive category balances into the daily guide', () => {
+  it('summarizes available room and categories needing attention', () => {
     const pulse = getBudgetPulse(
       [
         { ...budget, limitMinor: 100_000, spentMinor: 40_000 },
         { ...budget, limitMinor: 50_000, spentMinor: 60_000 },
       ] as MonthlyBudget[],
-      now,
     );
     expect(pulse).toMatchObject({
       remainingMinor: 50_000,
-      safePerDayMinor: 5_000,
-      daysRemaining: 12,
+      availableMinor: 60_000,
+      overageMinor: 10_000,
+      attentionCount: 1,
       status: 'over',
     });
   });

@@ -6,9 +6,9 @@ import { Screen } from '@/components/Screen';
 import { ProgressBar } from '@/components/ProgressBar';
 import { formatMoney, getDueStatus } from '@/domain/money';
 import {
-  getBudgetPacing,
+  getBudgetGuidance,
   getBudgetPulse,
-  type BudgetPacing,
+  type BudgetGuidance,
 } from '@/domain/today';
 import {
   getRecurringSuggestions,
@@ -29,11 +29,9 @@ export default function PlanScreen() {
     preferences,
   } = useFinance();
   const latest = transactions.find((item) => item.type !== 'transfer');
-  const today = new Date();
-  const dayKey = today.toDateString();
   const budgetPulse = useMemo(
-    () => getBudgetPulse(budgets, today),
-    [budgets, dayKey],
+    () => getBudgetPulse(budgets),
+    [budgets],
   );
   const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
   const recurringSuggestions = useMemo(
@@ -189,23 +187,24 @@ export default function PlanScreen() {
       {budgets.length ? (
         <View style={styles.pacingGuide}>
           <View style={styles.pacingGuideIcon}>
-            <Ionicons name="speedometer-outline" size={21} color={colors.primary} />
+            <Ionicons name="compass-outline" size={21} color={colors.primary} />
           </View>
           <View style={styles.pacingGuideContent}>
-            <Text style={styles.pacingGuideLabel}>DAILY BUDGET GUIDE</Text>
+            <Text style={styles.pacingGuideLabel}>BUDGET COMPASS</Text>
             <Text style={styles.pacingGuideValue}>
-              {formatMoney(
-                budgetPulse.safePerDayMinor,
-                preferences.mainCurrency,
-              )}
-              /day
+              {formatMoney(budgetPulse.availableMinor, preferences.mainCurrency)} left
             </Text>
             <Text style={styles.pacingGuideMeta}>
-              Across categories with money left · {budgetPulse.daysRemaining}{' '}
-              {budgetPulse.daysRemaining === 1 ? 'day' : 'days'} including today
+              Across {budgets.length} {budgets.length === 1 ? 'category' : 'categories'}
+              {' · '}
+              {budgetPulse.attentionCount
+                ? `${budgetPulse.attentionCount} ${
+                    budgetPulse.attentionCount === 1 ? 'needs' : 'need'
+                  } attention`
+                : 'all have room'}
             </Text>
             <Text style={styles.pacingGuideHint}>
-              This is guidance from your remaining category limits, not an automatic spending restriction.
+              Guidance uses your real transaction sizes—not an artificial daily allowance.
             </Text>
           </View>
         </View>
@@ -213,15 +212,24 @@ export default function PlanScreen() {
       {budgets.map((budget) => {
         const ratio = Math.min(1, budget.spentMinor / budget.limitMinor);
         const remaining = budget.limitMinor - budget.spentMinor;
-        const pacing = getBudgetPacing(budget, today);
-        const pacingCopy = getPacingCopy(
-          pacing,
+        const spendAmounts = transactions
+          .filter(
+            (transaction) =>
+              transaction.type === 'expense' &&
+              transaction.categoryId === budget.categoryId &&
+              transaction.currency === preferences.mainCurrency &&
+              transaction.occurredAt.slice(0, 7) === budget.month,
+          )
+          .map((transaction) => transaction.amountMinor);
+        const guidance = getBudgetGuidance(budget, spendAmounts);
+        const guidanceCopy = getBudgetGuidanceCopy(
+          guidance,
           preferences.mainCurrency,
         );
         return (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Edit ${budget.categoryName} budget. ${pacingCopy}`}
+            accessibilityLabel={`Edit ${budget.categoryName} budget. ${guidanceCopy}`}
             key={budget.id}
             style={styles.budget}
             onPress={() => router.push({ pathname: '/budget/editor', params: { id: budget.id } })}
@@ -236,9 +244,10 @@ export default function PlanScreen() {
               value={ratio}
               label={`${budget.categoryName} budget used`}
               color={
-                pacing.status === 'over'
+                guidance.status === 'over'
                   ? colors.expense
-                  : pacing.status === 'watch'
+                  : guidance.status === 'tight' ||
+                      guidance.status === 'used_up'
                     ? colors.warning
                     : colors.primary
               }
@@ -251,20 +260,22 @@ export default function PlanScreen() {
             <View style={styles.pacingRow}>
               <Ionicons
                 name={
-                  pacing.status === 'over'
+                  guidance.status === 'over'
                     ? 'alert-circle-outline'
-                    : pacing.status === 'watch'
-                      ? 'time-outline'
-                      : pacing.status === 'used_up'
+                    : guidance.status === 'tight'
+                      ? 'warning-outline'
+                      : guidance.status === 'used_up'
                         ? 'pause-circle-outline'
-                        : 'checkmark-circle-outline'
+                        : guidance.status === 'untouched'
+                          ? 'ellipse-outline'
+                          : 'checkmark-circle-outline'
                 }
                 size={15}
                 color={
-                  pacing.status === 'over'
+                  guidance.status === 'over'
                     ? colors.expense
-                    : pacing.status === 'watch' ||
-                        pacing.status === 'used_up'
+                    : guidance.status === 'tight' ||
+                        guidance.status === 'used_up'
                       ? colors.warning
                       : colors.primary
                 }
@@ -272,13 +283,13 @@ export default function PlanScreen() {
               <Text
                 style={[
                   styles.pacingText,
-                  pacing.status === 'over' && styles.pacingTextOver,
-                  (pacing.status === 'watch' ||
-                    pacing.status === 'used_up') &&
+                  guidance.status === 'over' && styles.pacingTextOver,
+                  (guidance.status === 'tight' ||
+                    guidance.status === 'used_up') &&
                     styles.pacingTextWatch,
                 ]}
               >
-                {pacingCopy}
+                {guidanceCopy}
               </Text>
             </View>
           </Pressable>
@@ -442,23 +453,34 @@ export default function PlanScreen() {
   );
 }
 
-function getPacingCopy(pacing: BudgetPacing, currency: string): string {
-  if (pacing.status === 'over') {
+function getBudgetGuidanceCopy(
+  guidance: BudgetGuidance,
+  currency: string,
+): string {
+  if (guidance.status === 'over') {
     return `${formatMoney(
-      Math.abs(pacing.remainingMinor),
+      Math.abs(guidance.remainingMinor),
       currency,
     )} over. Pause or adjust this budget.`;
   }
-  if (pacing.status === 'used_up') {
-    return 'Limit fully used. Pause this category for the rest of the month.';
+  if (guidance.status === 'used_up') {
+    return 'Budget fully used. Any new spending will go over the limit.';
   }
-  const daily = formatMoney(pacing.safePerDayMinor, currency);
-  const projected = formatMoney(pacing.projectedSpentMinor, currency);
-  return pacing.status === 'watch'
-    ? `${daily}/day from here. Current pace projects ${projected}.`
-    : `${daily}/day for ${pacing.daysRemaining} ${
-        pacing.daysRemaining === 1 ? 'day' : 'days'
-      }. Current pace projects ${projected}.`;
+  if (guidance.status === 'untouched') {
+    return 'No spending recorded yet. The full budget is available when you need it.';
+  }
+  if (guidance.typicalSpendMinor && guidance.similarSpendsLeft !== null) {
+    const typical = formatMoney(guidance.typicalSpendMinor, currency);
+    if (guidance.similarSpendsLeft === 0) {
+      return `Less than one spend like your recent ${typical} remains.`;
+    }
+    return `About ${guidance.similarSpendsLeft} more ${
+      guidance.similarSpendsLeft === 1 ? 'spend' : 'spends'
+    } like your recent ${typical}.`;
+  }
+  return `${Math.round(
+    guidance.remainingRatio * 100,
+  )}% is still available. Record spending to make this guide personal.`;
 }
 
 const styles = StyleSheet.create({

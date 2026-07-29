@@ -126,8 +126,8 @@ Status: **Complete**
 - [x] Opt-in local schedule and pay-day reminders with no automatic posting
 - [x] One low-noise weekly budget and savings-goal check-in
 - [x] Independent reminder controls, private lock-screen copy, and a test action
-- [x] Daily budget pacing based on category balances and inclusive days remaining
-- [x] Category pace states and month-end projections from confirmed spending
+- [x] Budget Compass based on money remaining instead of artificial daily allowances
+- [x] Personalized category guidance based on real recent transaction sizes
 - [x] Privacy-aware Home pulse plus detailed, accessible Plan guidance
 - [x] Savings guidance based on real account balances and goal allocations
 - [x] Emergency-first, currency-safe allocation and funding recommendations
