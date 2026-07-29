@@ -34,6 +34,7 @@ export interface FinanceTransaction {
   occurredAt: string;
   createdAt: string;
   currency: string;
+  transferToAccountId?: string | null;
 }
 
 export interface MonthlySummary {
@@ -63,6 +64,7 @@ export interface AccountInput {
 }
 
 export interface NewTransfer {
+  id?: string;
   fromAccountId: string;
   toAccountId: string;
   amountMinor: number;

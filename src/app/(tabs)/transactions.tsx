@@ -190,7 +190,7 @@ export default function TransactionsScreen() {
                   : `${visibleTransactions.length} of ${transactions.length} records`}
               </Text>
               <Text style={styles.editHint}>
-                Tap income or expenses to edit · hold to delete
+                Tap any record to edit · hold to delete
               </Text>
             </View>
             {activeFilterCount ? (
@@ -208,14 +208,18 @@ export default function TransactionsScreen() {
               <View key={transaction.id}>
                 <TransactionRow
                   transaction={transaction}
-                  onPress={
-                    transaction.type === 'transfer'
-                      ? undefined
-                      : () =>
-                          router.push({
+                  onPress={() =>
+                    router.push(
+                      transaction.type === 'transfer'
+                        ? {
+                            pathname: '/transfer/new',
+                            params: { id: transaction.id },
+                          }
+                        : {
                             pathname: '/transaction/new',
                             params: { id: transaction.id },
-                          })
+                          },
+                    )
                   }
                   onLongPress={() => confirmDelete(transaction.id)}
                 />

@@ -88,6 +88,7 @@ describe('finance repository integration', () => {
     const expense = activity.find((transaction) => transaction.type === 'expense');
     const transfer = activity.find((transaction) => transaction.type === 'transfer');
     expect(income && expense && transfer).toBeTruthy();
+    expect(transfer?.transferToAccountId).toBe(bank!.id);
 
     await createTransaction(db, {
       id: income!.id,
@@ -103,6 +104,27 @@ describe('finance repository integration', () => {
       75_000,
     );
     expect(accounts.find((account) => account.id === bank!.id)?.currentBalanceMinor).toBe(30_000);
+
+    await createTransfer(db, {
+      id: transfer!.id,
+      fromAccountId: 'starter-cash',
+      toAccountId: bank!.id,
+      amountMinor: 30_000,
+      note: 'Updated transfer',
+      occurredAt: '2026-07-11T12:00:00.000Z',
+    });
+    accounts = await listAccounts(db);
+    expect(accounts.find((account) => account.id === 'starter-cash')?.currentBalanceMinor).toBe(
+      65_000,
+    );
+    expect(accounts.find((account) => account.id === bank!.id)?.currentBalanceMinor).toBe(40_000);
+    expect(
+      (await listTransactions(db)).find((transaction) => transaction.id === transfer!.id),
+    ).toMatchObject({
+      note: 'Updated transfer',
+      amountMinor: 30_000,
+      occurredAt: '2026-07-11T12:00:00.000Z',
+    });
 
     await deleteTransaction(db, transfer!.id);
     await deleteTransaction(db, expense!.id);

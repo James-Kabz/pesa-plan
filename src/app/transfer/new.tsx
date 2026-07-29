@@ -23,18 +23,25 @@ import { useFinance } from '@/providers/FinanceProvider';
 import { colors, radius, spacing } from '@/theme';
 
 export default function NewTransferScreen() {
-  const { toAccountId } = useLocalSearchParams<{
+  const { id, toAccountId } = useLocalSearchParams<{
+    id?: string;
     toAccountId?: string;
   }>();
-  const { accounts, addTransfer } = useFinance();
+  const { accounts, transactions, addTransfer } = useFinance();
+  const existing = transactions.find(
+    (transaction) => transaction.id === id && transaction.type === 'transfer',
+  );
   const requestedDestination = accounts.find(
-    (account) => account.id === toAccountId,
-  );
-  const initialSource = accounts.find(
     (account) =>
-      account.id !== requestedDestination?.id &&
-      account.currency === requestedDestination?.currency,
+      account.id === (existing?.transferToAccountId ?? toAccountId),
   );
+  const initialSource =
+    accounts.find((account) => account.id === existing?.accountId) ??
+    accounts.find(
+      (account) =>
+        account.id !== requestedDestination?.id &&
+        account.currency === requestedDestination?.currency,
+    );
   const [fromId, setFromId] = useState(
     initialSource?.id ?? accounts[0]?.id ?? '',
   );
@@ -44,12 +51,20 @@ export default function NewTransferScreen() {
     [accounts, from?.currency, fromId],
   );
   const [toId, setToId] = useState(
-    destinations.find((account) => account.id === toAccountId)?.id ??
+    destinations.find(
+      (account) =>
+        account.id === (existing?.transferToAccountId ?? toAccountId),
+    )?.id ??
       destinations[0]?.id ??
       '',
   );
-  const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
+  const [amount, setAmount] = useState(
+    existing ? formatMoneyInput(String(existing.amountMinor / 100)) : '',
+  );
+  const [note, setNote] = useState(existing?.note ?? '');
+  const [occurredOn, setOccurredOn] = useState(() =>
+    toLocalDateValue(existing?.occurredAt ?? new Date().toISOString()),
+  );
   const [saving, setSaving] = useState(false);
 
   function chooseSource(id: string) {
@@ -67,18 +82,30 @@ export default function NewTransferScreen() {
       Alert.alert('Check the transfer', 'Choose two accounts and enter an amount greater than zero.');
       return;
     }
-    if (from && from.type !== 'credit' && amountMinor > from.currentBalanceMinor) {
-      Alert.alert('Not enough money', `Available balance is ${formatMoney(from.currentBalanceMinor, from.currency)}.`);
+    const availableMinor =
+      (from?.currentBalanceMinor ?? 0) +
+      (existing && existing.accountId === from?.id ? existing.amountMinor : 0);
+    if (from && from.type !== 'credit' && amountMinor > availableMinor) {
+      Alert.alert(
+        'Not enough money',
+        `Available balance is ${formatMoney(availableMinor, from.currency)}.`,
+      );
+      return;
+    }
+    const occurredAt = resolveOccurredAt(occurredOn, existing?.occurredAt);
+    if (!occurredAt) {
+      Alert.alert('Check the date', 'Enter a real date in YYYY-MM-DD format.');
       return;
     }
     try {
       setSaving(true);
       await addTransfer({
+        id: existing?.id,
         fromAccountId: fromId,
         toAccountId: toId,
         amountMinor,
         note,
-        occurredAt: new Date().toISOString(),
+        occurredAt,
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
@@ -95,7 +122,9 @@ export default function NewTransferScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel="Close transfer editor" style={styles.headerButton} onPress={() => router.back()}>
             <Ionicons name="close" size={22} color={colors.ink} />
           </Pressable>
-          <Text accessibilityRole="header" style={styles.headerTitle}>Transfer money</Text>
+          <Text accessibilityRole="header" style={styles.headerTitle}>
+            {existing ? 'Edit transfer' : 'Transfer money'}
+          </Text>
           <View style={styles.headerButton} />
         </View>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
@@ -113,6 +142,20 @@ export default function NewTransferScreen() {
               style={styles.amountInput}
             />
           </View>
+
+          <Text style={styles.label}>Transfer date</Text>
+          <TextInput
+            accessibilityLabel="Transfer date"
+            value={occurredOn}
+            onChangeText={(value) =>
+              setOccurredOn(value.replace(/[^\d-]/g, '').slice(0, 10))
+            }
+            keyboardType="numbers-and-punctuation"
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor="#98A19B"
+            style={styles.dateInput}
+          />
+          <Text style={styles.dateHint}>Use YYYY-MM-DD.</Text>
 
           <Text style={styles.label}>From</Text>
           <View style={styles.options}>
@@ -157,13 +200,19 @@ export default function NewTransferScreen() {
           />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Record transfer"
+            accessibilityLabel={existing ? 'Update transfer' : 'Record transfer'}
             accessibilityState={{ disabled: saving || !toId }}
             disabled={saving || !toId}
             onPress={() => void submit()}
             style={({ pressed }) => [styles.save, (pressed || saving || !toId) && styles.disabled]}
           >
-            <Text style={styles.saveText}>{saving ? 'Saving…' : 'Record transfer'}</Text>
+            <Text style={styles.saveText}>
+              {saving
+                ? 'Saving…'
+                : existing
+                  ? 'Update transfer'
+                  : 'Record transfer'}
+            </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -217,6 +266,22 @@ const styles = StyleSheet.create({
   amountRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' },
   currency: { color: colors.muted, fontSize: 18, fontWeight: '700', marginRight: spacing.sm },
   amountInput: { color: colors.ink, fontSize: 42, fontWeight: '800', minWidth: 120, maxWidth: 250 },
+  dateInput: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '700',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  dateHint: {
+    color: colors.muted,
+    fontSize: 10,
+    marginTop: spacing.xs,
+  },
   label: {
     color: colors.ink,
     fontSize: 13,
@@ -278,3 +343,41 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.45 },
   saveText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
 });
+
+function toLocalDateValue(value: string): string {
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function resolveOccurredAt(
+  value: string,
+  original?: string,
+): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const [, yearText, monthText, dayText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const originalDate = original ? new Date(original) : new Date();
+  const date = new Date(
+    year,
+    month - 1,
+    day,
+    originalDate.getHours(),
+    originalDate.getMinutes(),
+    originalDate.getSeconds(),
+    originalDate.getMilliseconds(),
+  );
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return date.toISOString();
+}

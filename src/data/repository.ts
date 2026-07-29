@@ -43,6 +43,7 @@ interface AccountRow {
 interface TransactionRow {
   id: string;
   account_id: string;
+  transfer_to_account_id: string | null;
   account_name: string;
   category_id: string;
   category_name: string;
@@ -108,6 +109,7 @@ export async function listTransactions(
     SELECT
       t.id,
       t.account_id,
+      NULL AS transfer_to_account_id,
       a.name AS account_name,
       t.category_id,
       c.name AS category_name,
@@ -125,6 +127,7 @@ export async function listTransactions(
     SELECT
       tr.id,
       tr.from_account_id AS account_id,
+      tr.to_account_id AS transfer_to_account_id,
       source.name || ' → ' || destination.name AS account_name,
       'transfer' AS category_id,
       'Transfer' AS category_name,
@@ -164,6 +167,7 @@ export async function listTransactions(
     occurredAt: row.occurred_at,
     createdAt: row.created_at,
     currency: row.currency,
+    transferToAccountId: row.transfer_to_account_id,
   }));
 }
 
@@ -268,6 +272,20 @@ export async function createTransfer(
     transferAccounts[0].currency !== transferAccounts[1].currency
   ) {
     throw new Error('Transfers require two accounts with the same currency');
+  }
+  if (transfer.id) {
+    await db.runAsync(
+      `UPDATE transfers
+       SET from_account_id = ?, to_account_id = ?, amount_minor = ?, note = ?, occurred_at = ?
+       WHERE id = ?`,
+      transfer.fromAccountId,
+      transfer.toAccountId,
+      transfer.amountMinor,
+      transfer.note?.trim() || null,
+      transfer.occurredAt,
+      transfer.id,
+    );
+    return;
   }
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   await db.runAsync(
